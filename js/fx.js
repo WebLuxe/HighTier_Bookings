@@ -36,7 +36,7 @@ export async function start(ctx) {
   ScrollTrigger.config({ ignoreMobileResize: true });
   root.classList.add('fx');
   await afterIntro();
-  if (fxc.smoothScroll !== false && desktop()) smooth();
+  if (fxc.smoothScroll !== false && desktop() && !root.classList.contains('snap')) smooth();
   if (fxc.cursor !== false && desktop()) cursor();
   watchdog();
   refresh(X.page);
@@ -64,6 +64,7 @@ function afterIntro() {
 function smooth() {
   lenis = new Lenis({ duration: 1.05, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), smoothWheel: true, prevent: (node) => !!node.closest('dialog, .menu, .lc-track, .rc-track, .lp-track') });
   lenis.on('scroll', ScrollTrigger.update);
+  window.__lenis = lenis;
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
   // pause only when the menu actually opens or closes (calling start() at other times throws away the scroll in progress)
@@ -273,6 +274,27 @@ function scenes() {
     tl.to(track, { x: () => -dist(), ease: 'none', duration: cards.length - 1 }, 0);
     cards.forEach((c, i) => { if (i) tl.to(layers[i], { opacity: 1, duration: 0.7, ease: 'none' }, i - 0.85); });
     tl.eventCallback('onUpdate', () => { const k = Math.min(cards.length - 1, Math.round(tl.time())); if (k !== shown) { shown = k; day.style.color = cards[k].dataset.fg; } });
+    // one swipe, one moment of the day: a snap point where each card is fully in view
+    if (root.classList.contains('snap')) {
+      const st = tl.scrollTrigger;
+      $$('.snap-mark').forEach((m) => m.remove());
+      // measured with a separate probe: a snap point must never pass through the top of the page, or the browser follows it
+      const base = () => { const p = document.createElement('i'); p.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden'; document.body.append(p); const y = p.getBoundingClientRect().top + scrollY; p.remove(); return y; };
+      const at = (k, b0) => Math.round(st.start + k * (st.end - st.start) / Math.max(1, cards.length - 1) - b0) + 'px';
+      // created only once ScrollTrigger knows where the scene starts (before that every point would sit at the top of the page)
+      let marks = [];
+      const place = () => {
+        if (!(st.start > 0 && st.end > st.start)) return;
+        const b1 = base();
+        if (!marks.length) marks = cards.map((_, k) => { const m = document.createElement('i'); m.className = 'snap-mark'; m.setAttribute('aria-hidden', 'true'); m.style.top = at(k, b1); document.body.append(m); return m; });
+        else marks.forEach((m, k) => { m.style.top = at(k, b1); });
+        // tell the browser which section is really on screen, so it never "follows" a point that just moved
+        const y0 = scrollY;
+        requestAnimationFrame(() => { if (Math.abs(scrollY - y0) < 2) scrollTo({ top: y0, behavior: 'instant' }); });
+      };
+      ScrollTrigger.addEventListener('refresh', place);
+      place();
+    }
   }
 
   // the receipt: the booking-site price is struck through, then the saving counts up

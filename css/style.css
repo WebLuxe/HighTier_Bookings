@@ -307,6 +307,33 @@ html.intro-on .hero-rise, html.intro-on .phead-in > * { animation-play-state: pa
 html { overflow-x: clip; }
 .ticker { contain: paint; }
 
+/* ---------- one swipe, one section (home page) ---------- */
+html.snap { scroll-padding-top: 0; }
+@media (pointer: coarse), (max-width: 759px) { html.snap.snap-on { scroll-snap-type: y mandatory; } }
+html.snap .snap-pt { scroll-snap-align: start; scroll-snap-stop: always; scroll-margin-top: 61px; }
+html.snap .snap-end { scroll-snap-align: end; scroll-snap-stop: always; }
+html.snap .snap-mark { position: absolute; left: 0; width: 1px; height: 1px; pointer-events: none; scroll-snap-align: start; scroll-snap-stop: always; }
+html.snap main > .hero { min-height: calc(100svh - var(--hero-top, 0px) - var(--strip, 0px)) !important; }
+html.snap main > :not(.hero)[style*="--strip"] { min-height: calc(var(--screen, 100svh) - var(--strip)) !important; }
+html.snap .snap-hide { display: none !important; }
+
+/* ---------- phones: lists one at a time, with buttons ---------- */
+.pg-nav { display: none; }
+@media (max-width: 759px) {
+  [data-pg] { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; grid-auto-flow: row !important; grid-auto-columns: auto !important; overflow: visible !important; margin-inline: 0 !important; padding-inline: 0 !important; scroll-snap-type: none !important; }
+  [data-pg] > :not(.pg-on) { display: none !important; }
+  [data-pg] > .pg-on { animation: pg-in .45s var(--ease-out, ease) both; opacity: 1; transform: none; }
+  .pg-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 12px; }
+  .pg-b { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--card, transparent); color: var(--text); }
+  .pg-b:active { transform: scale(.94); }
+  .pg-n { min-width: 4.5ch; text-align: center; font-weight: 600; font-size: .9rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+}
+@keyframes pg-in { from { opacity: 0; translate: 0 10px; } }
+/* the header keeps one height on a snapping page, so nothing below it shifts while scrolling */
+html.snap { --hd-h: 60px; }
+/* lists that no longer scroll sideways must not leave snap points in the page */
+@media (max-width: 759px) { html.snap :is(.gal-grid, .rev-grid, .notes, .vc-grid, .near-grid, [data-pg]) > * { scroll-snap-align: none !important; } }
+
 /* ---------- availability calendar (shared, added with @uses cal) ---------- */
 .cal { --cal-sel: var(--primary); --on-cal-sel: var(--on-primary); display: grid; gap: var(--s2); min-width: 0; }
 :root[data-theme="dark"] .cal { --cal-sel: var(--accent); --on-cal-sel: var(--on-accent); }
@@ -966,3 +993,239 @@ html.lenis.lenis-stopped { overflow: hidden; }
 
 /* four photos in the strip: one row of four on computers, not three plus one alone */
 @media (min-width: 760px) { .polas:has(> li:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s4) var(--s3); } }
+
+/* =====================================================================
+   THE SIGNATURE LAYER (High tier)
+   One section per screen, a gentle scroll lock, section dots, paper grain,
+   palm shadows that sway, and photos that breathe while they are on screen.
+   ===================================================================== */
+:root {
+  --screen: calc(100svh - 61px);
+  /* paper grain: a tiny noise tile, drawn once by the browser */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .26 0 0 0 0 .18 0 0 0 .075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* a palm frond, for the shadows */
+  --frond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Cg fill='%23000'%3E%3Cpath d='M30 380 C120 300 210 210 380 30 L388 40 C220 220 130 310 40 388Z'/%3E%3Cpath d='M120 300 C80 250 40 230 0 230 C40 250 70 280 100 320Z'/%3E%3Cpath d='M160 260 C130 200 90 170 40 160 C90 190 120 230 140 280Z'/%3E%3Cpath d='M200 220 C180 150 140 110 90 90 C140 130 170 180 180 240Z'/%3E%3Cpath d='M240 180 C230 110 200 60 150 30 C195 80 215 130 220 200Z'/%3E%3Cpath d='M280 140 C285 80 270 40 240 0 C265 50 270 100 262 160Z'/%3E%3Cpath d='M150 300 C210 300 260 320 300 360 C250 330 200 320 160 320Z'/%3E%3Cpath d='M190 260 C260 250 320 270 370 310 C310 285 250 280 200 280Z'/%3E%3Cpath d='M230 220 C300 200 350 210 400 240 C340 225 290 225 240 238Z'/%3E%3Cpath d='M270 180 C320 150 360 150 400 160 C355 165 315 175 280 198Z'/%3E%3C/g%3E%3C/svg%3E");
+}
+body { background-image: var(--grain); }
+.feat, .loc, .direct, .revs, .insta, .faq-sec, .intro, .book, .lp, .contact-sec { background-image: var(--grain); }
+
+/* one section per screen on the home page (the pinned "A day at" scene keeps its own length) */
+body[data-page="home"] main > section:not(.hero):not(.ticker):not([data-day]) { min-height: var(--screen); display: flex; flex-direction: column; justify-content: center; padding-block: clamp(28px, 6svh, 80px); position: relative; }
+body[data-page="home"] main > section > .wrap { width: min(100% - 2 * var(--gut), var(--wrap)); }
+body[data-page="home"] .sec-head { margin-bottom: clamp(16px, 3.5svh, 48px); }
+/* each room is its own screen */
+.feat .rows { gap: 0; }
+.feat .row { min-height: var(--screen); padding-block: clamp(20px, 4svh, 48px); align-content: center; }
+.feat .rows > .row:first-child { min-height: calc(var(--screen) - var(--fh, 150px)); }
+@media (min-width: 960px) { .row-pics { aspect-ratio: auto; height: min(64svh, 600px); } }
+.plx, .fcta { min-height: var(--screen); display: grid; place-items: center; }
+.fcta { padding-block: var(--s8); }
+
+/* the scroll lock on phones and tablets: the browser settles gently on a section (computers do it in fx.js) */
+/* (the scroll lock is html.snap in core.css) */
+
+/* section dots (computers, home page) */
+.sdots { position: fixed; right: 22px; top: 50%; translate: 0 -50%; z-index: 70; display: grid; gap: 4px; transition: opacity .3s; }
+.sdots button { position: relative; width: 28px; height: 24px; display: grid; place-items: center end; }
+.sdots button::after { content: ""; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent); transition: background-color .3s, border-color .3s, width .4s var(--ease-out); }
+.sdots button[aria-current]::after { width: 22px; border-radius: 999px; background: var(--accent); border-color: var(--accent); }
+.sdots.on-dark button::after { border-color: rgb(255 255 255 / .75); }
+.sdots span { position: absolute; right: 36px; white-space: nowrap; padding: 6px 10px; border-radius: 999px; background: var(--dark); color: #fff; font-size: .78rem; font-weight: 600; opacity: 0; translate: 6px 0; pointer-events: none; transition: opacity .25s, translate .3s var(--ease-out); }
+.sdots button:hover span, .sdots button:focus-visible span { opacity: 1; translate: 0 0; }
+.sdots span:empty { display: none; }
+html.in-day .sdots, html.intro-on .sdots { opacity: 0; pointer-events: none; }
+
+/* palm shadows: a frond's shadow sways slowly across the sand-coloured sections, like light through the palms */
+.intro, .faq-sec, .insta { isolation: isolate; overflow: clip; position: relative; }
+.intro::before, .faq-sec::before, .insta::before { content: ""; position: absolute; z-index: -1; width: min(70vw, 760px); aspect-ratio: 1; background: var(--frond) center / contain no-repeat; opacity: .055; filter: blur(5px); pointer-events: none; transform-origin: 0% 100%; animation: sway 11s ease-in-out infinite alternate; }
+.intro::before { right: -14vw; top: -8vw; rotate: 160deg; }
+.faq-sec::before { left: -18vw; bottom: -14vw; rotate: 8deg; animation-duration: 13s; }
+.insta::before { left: -16vw; top: -10vw; rotate: 100deg; animation-duration: 9s; }
+:root[data-theme="dark"] .intro::before, :root[data-theme="dark"] .faq-sec::before, :root[data-theme="dark"] .insta::before { filter: blur(5px) invert(1); opacity: .04; }
+@keyframes sway { from { transform: rotate(-3deg) translate3d(0, 0, 0); } to { transform: rotate(3deg) translate3d(14px, -10px, 0); } }
+
+/* photos that breathe: a very slow zoom while the picture is on screen */
+.row-pics .lc-track li:first-child img, .ip img, .polas img, .plx > img, .fcta-bg img, .phead-bg img { animation: breathe 18s ease-in-out infinite alternate paused; }
+.row-pics.alive .lc-track li:first-child img, .ip.alive img, .polas li.alive img, .plx.alive > img, .fcta-bg.alive img, .phead-bg.alive img { animation-play-state: running; }
+@keyframes breathe { from { scale: 1; } to { scale: 1.08; } }
+.polas a, .ip { overflow: hidden; }
+/* room photos open up as they arrive (with the motion layer) */
+html.fx .row-pics:not(.done) { clip-path: inset(6% 4% 6% 4% round 4px); transition: clip-path 1.5s var(--ease-out); }
+html.fx .row-pics.opened:not(.done) { clip-path: inset(0 0 0 0 round 4px); }
+/* phones and tablets: lighter on the graphics chip - no clip reveal, no breathing in the swipeable photos, grain on the page only */
+@media (max-width: 959px), (hover: none) {
+  html.fx .row-pics:not(.done), html.fx .row-pics.opened:not(.done) { clip-path: none; transition: none; }
+  .row-pics .lc-track li:first-child img, .polas img, .ip img { animation: none; }
+  .feat, .loc, .direct, .revs, .insta, .faq-sec, .intro, .book, .lp, .contact-sec { background-image: none; }
+}
+
+/* phones: each section's content fitted to one screen */
+@media (max-width: 759px) {
+  body[data-page="home"] main > section:not(.hero):not(.ticker):not([data-day]) { padding-block: 22px 96px; }
+  body[data-page="home"] main > .fcta, body[data-page="home"] main > .plx { padding-bottom: 22px; }
+  body[data-page="home"] .sec-head { margin-bottom: 14px; }
+  .h2 { font-size: clamp(2.1rem, 9.4vw, 2.6rem); }
+  .direct-in { gap: var(--s3); }
+  .perks { grid-template-columns: 1fr 1fr; gap: 0 14px; margin-top: 4px; }
+  .perks li { padding: 10px 0; }
+  .perks b { font-size: 1.1rem; }
+  .perks span { font-size: .8rem; line-height: 1.3; }
+  .receipt { width: min(100%, 300px); padding: 18px 18px 30px; font-size: .74rem; }
+  .rc-top b { font-size: 1.3rem; }
+  .rc-top, .rc-lines { padding-block: 10px; }
+  .rc-keep { padding-top: 10px; }
+  .rc-keep b { font-size: 1.9rem; }
+  .receipt figcaption { display: none; }
+  .intro-in { gap: var(--s3); }
+  .intro-pics { padding: 10px 10px 40px; max-width: 340px; }
+  .ip-0 { width: 66%; aspect-ratio: 4 / 4.2; }
+  .ip-1 { width: 46%; }
+  .intro-copy { gap: 10px; }
+  .intro-copy > p { font-size: .95rem; }
+  .sig { font-size: 1.7rem !important; }
+  .row { gap: 14px; }
+  .row-pics { aspect-ratio: 4 / 3.2; }
+  .row-copy { gap: 10px; }
+  .row-n { font-size: 2rem; }
+  .row-name { font-size: 2.2rem; }
+  .row-short { font-size: .95rem; }
+  .row-price b { font-size: 1.8rem; }
+  .row-foot { padding-top: 10px; gap: 10px 16px; }
+  .revs-head { gap: 12px; margin-bottom: 0; }
+  .seal { width: 100px; height: 100px; }
+  .seal b { font-size: 2.1rem; }
+  .rc-track { padding-block: 18px 22px; }
+  .postcard { padding: 18px; }
+  .pc-text { font-size: 1.3rem; }
+  .pc-side { margin-top: 12px; padding-top: 10px; }
+  .journey { gap: 12px; margin-bottom: 14px; padding-left: 54px; }
+  .j-dot { left: -54px; width: 40px; height: 40px; }
+  .journey::before { left: 19px; }
+  .journey b { font-size: 1.45rem; }
+  body[data-page="home"] .loc-map .map { display: none; }
+  body[data-page="home"] .loc-in { gap: 12px; }
+  .how { gap: 8px; }
+  .how p { font-size: .88rem; }
+  .polas { gap: 14px 12px; padding: 6px 2px; }
+  .polas a { padding: 7px 7px 9px; gap: 5px; }
+  .polas span { font-size: 1rem; }
+  .polas li:nth-child(n + 5) { display: none; }
+  .faq summary { min-height: 60px; font-size: 1.3rem; }
+  .sdots { display: none; }
+}
+/* computers: the photo strip in one row, the location fitted */
+@media (min-width: 1100px) {
+  .polas:has(> li:nth-child(5)) { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s3); }
+  .polas:has(> li:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 980px; margin-inline: auto; }
+}
+@media (min-width: 760px) {
+  .loc-map .map { min-height: min(34svh, 320px); }
+  .journey { margin-bottom: var(--s4); }
+  .postcard { min-height: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro::before, .faq-sec::before, .insta::before { animation: none; }
+  html.fx .row-pics { clip-path: none; }
+  html:has(body[data-page="home"]) { scroll-snap-type: none; }
+}
+
+/* phones: the last fits */
+@media (max-width: 759px) {
+  /* hero: title, line and the search all on the first screen; WhatsApp waits in the bottom bar */
+  body[data-page="home"] .fab { display: none !important; }
+  .hero .h1 { font-size: clamp(2.5rem, 11.5vw, 3.1rem); }
+  .hero .lead { font-size: .95rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .hero-loc span { display: none; }
+  .hero-in { gap: 12px; }
+  .ticket { margin-top: 6px; }
+  .ticket .sf { padding: 10px 14px; }
+  .ticket .btn { min-height: 50px; margin: 8px; }
+  /* welcome: the two taped photos side by side, small */
+  .intro-pics { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px 6px 6px; max-width: none; }
+  .ip-0, .ip-1 { position: relative; inset: auto; width: auto; aspect-ratio: 4 / 3.4; }
+  .ip-1 { margin-top: 18px; }
+  .ip { padding: 6px; }
+  .ip::before { width: 60px; height: 20px; margin-left: -30px; top: -10px; }
+  .intro-copy > p { font-size: .92rem; line-height: 1.5; }
+  /* location (home): the journey in two columns, how to get here is on the contact page */
+  body[data-page="home"] .journey { grid-template-columns: 1fr 1fr; padding-left: 0; gap: 14px 12px; }
+  body[data-page="home"] .journey::before { display: none; }
+  body[data-page="home"] .journey li { padding-left: 50px; min-height: 40px; align-content: center; }
+  body[data-page="home"] .j-dot { left: 0; }
+  body[data-page="home"] .journey .j-home { grid-column: 1 / -1; }
+  body[data-page="home"] .journey b { font-size: 1.25rem; }
+  body[data-page="home"] .journey li > span:last-child { font-size: .8rem; }
+  body[data-page="home"] .how { display: none; }
+  /* rooms: the button stays clear of the bottom bar */
+  .feat .row { padding: 14px 0 88px; align-content: start; }
+  .feat .rows > .row:first-child { padding-top: 0; }
+  .row-pics { aspect-ratio: 4 / 3; }
+}
+
+/* computers: the location fitted to one screen */
+@media (min-width: 760px) { body[data-page="home"] .loc-map .map { min-height: min(24svh, 240px); } body[data-page="home"] .journey { margin-bottom: var(--s3); } body[data-page="home"] .loc .sec-head { margin-bottom: var(--s3); } }
+
+/* palm shadows: larger and placed so they read as a frond falling across the section */
+.intro::before { right: -6vw; left: auto; top: -18%; width: min(62vw, 820px); rotate: 205deg; opacity: .075; filter: blur(3px); }
+.faq-sec::before { left: -10vw; bottom: -30%; width: min(56vw, 720px); opacity: .07; filter: blur(3px); }
+.insta::before { left: -8vw; top: -22%; width: min(50vw, 640px); opacity: .07; filter: blur(3px); }
+
+/* small and short computer screens */
+@media (min-width: 960px) {
+  .polas:has(> li:nth-child(5)) { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--s3); }
+}
+@media (min-width: 960px) and (max-height: 820px) {
+  body[data-page="home"] .loc-map .map { min-height: 20svh; }
+  body[data-page="home"] .journey { padding-top: 60px; margin-bottom: var(--s2); }
+  body[data-page="home"] .j-dot { top: -60px; width: 42px; height: 42px; }
+  body[data-page="home"] .journey::before { top: 21px; }
+  body[data-page="home"] .how { gap: 8px; }
+  body[data-page="home"] .how p { font-size: .9rem; }
+}
+
+/* phones: no sideways swiping - photos change with the arrows, postcards with the dots */
+@media (max-width: 759px) {
+  .lc-track, .rc-track { overflow-x: hidden !important; touch-action: pan-y; }
+  .lc-nav { display: grid !important; opacity: .95; width: 38px; height: 38px; }
+  .rc-track > li { flex: 0 0 calc(100vw - 2 * var(--gut)); }
+  .rc-track { gap: calc(2 * var(--gut)); }
+  .lp-track { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px; overflow: hidden; height: min(52svh, 420px); }
+  .lp-track li:first-child { grid-row: span 2; }
+  .lp-track li:nth-child(n + 4) { display: none; }
+  body[data-page="home"] .ticker { display: none; }
+  /* the rooms open with their own title page, then one room per swipe */
+  html.snap .feat > .wrap > .sec-row { min-height: calc(var(--screen) - 22px); margin-bottom: 0; display: grid; align-content: center; justify-items: start; gap: 18px; padding-bottom: 90px; }
+  html.snap .feat > .wrap > .sec-row .sec-head { margin-bottom: 0; }
+  html.snap .feat .h2 { font-size: clamp(2.6rem, 12vw, 3.4rem); }
+}
+/* computers: the ticker is one row at the foot of the "book direct" screen; the first room shares the screen with the title */
+html.snap .ticker { padding-block: 18px; }
+html.snap .ticker .ticker-alt { display: none; }
+html.snap .ticker-row { font-size: clamp(2.2rem, 4.6vw, 3.8rem); }
+html.snap .feat .rows > .row:first-child { min-height: calc(var(--screen) - var(--fh, 150px)); }
+@media (min-width: 960px) { html.snap .feat .rows > .row:first-child .row-pics { height: min(calc(var(--screen) - var(--fh, 150px) - 70px), 600px); } }
+/* phones: book direct and reviews fit one screen exactly */
+@media (max-width: 759px) {
+  .direct .h2, .revs .h2 { font-size: clamp(1.9rem, 8.6vw, 2.3rem); }
+  .direct .lead { font-size: .92rem; }
+  .receipt { padding-top: 14px; }
+  .rc-lines { gap: 6px; }
+  .seal { width: 86px; height: 86px; }
+  .seal b { font-size: 1.8rem; }
+  .rlinks { gap: 2px; font-size: .9rem; }
+  .rc-track { padding-block: 12px 16px; }
+  .pc-text { font-size: 1.18rem; }
+}
+@media (max-width: 759px) {
+  .insta .sec-head .lead { display: none; }
+  .polas img { aspect-ratio: 4 / 3.4; }
+  .polas span { font-size: .92rem; }
+}
+html.fx .day-card { scroll-snap-align: none; }
+/* the rooms' title screen (phones): a palm frond's shadow drifting behind the title */
+@media (max-width: 759px) {
+  html.snap .feat > .wrap > .sec-row { position: relative; isolation: isolate; }
+  html.snap .feat > .wrap > .sec-row::before { content: ""; position: absolute; z-index: -1; right: -30%; top: 4%; width: 110%; aspect-ratio: 1; background: var(--frond) center / contain no-repeat; opacity: .07; rotate: 200deg; transform-origin: 0% 100%; pointer-events: none; animation: sway 12s ease-in-out infinite alternate; }
+  :root[data-theme="dark"] html.snap .feat > .wrap > .sec-row::before, :root[data-theme="dark"].snap .feat > .wrap > .sec-row::before { filter: invert(1); opacity: .05; }
+}
+@media (prefers-reduced-motion: reduce) { html.snap .feat > .wrap > .sec-row::before { animation: none; } }

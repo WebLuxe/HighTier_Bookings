@@ -303,6 +303,7 @@ window.SITE = {
   /* ---------- 8. Demo mode (WebLuxe sales demos). Set enabled: false for a real client ---------- */
   demo: {
     enabled: true,
+    note: { en: "Example website by WebLuxe. WebLuxe Villa is not a real business: the names, prices, photos, reviews and availability are all examples.", fr: "Site d'exemple par WebLuxe. WebLuxe Villa n'est pas une vraie entreprise : noms, prix, photos, avis et disponibilités sont des exemples." },
     studioWhatsapp: "",
     examples: { tour: "examples/tour.js", rental: "examples/rental.js" },  // lets a prospect see the other business types
     tiers: [
@@ -347,7 +348,7 @@ window.SITE = {
       waIntro: "Hello {name}, I would like to book:", waFollow: "Hello, about my booking request {ref}:", bookSubject: "New booking request from the {name} website",
       cursorView: "View", cursorDrag: "Drag", onSites: "On booking sites", bookedHere: "Booked here", youKeep: "You keep", commissionNote: "Booking sites add around {pct}% in fees and commission.",
       demoTypeLabel: "See this template for", demoType_accommodation: "a guesthouse or villa", demoType_tour: "boat trips and tours", demoType_rental: "car rental",
-      addDate: "Add date", nNights: "{n} nights", payNow: "Pay {amount} now",
+      sections: "Page sections", addDate: "Add date", nNights: "{n} nights", payNow: "Pay {amount} now",
       calTitle: "Choose your dates", calPickIn: "Tap your check-in day", calPickOut: "Now tap your check-out day (min. {n})", calFree: "Available", calBooked: "Booked",
       calClear: "Clear dates", calDone: "Done", calMin: "From this day the minimum is {n}.", calClash: "Some of those dates are already booked. Pick other dates.", calPriceNote: "Prices per night in {cur}",
       countries: ["Mauritius", "France", "Réunion", "United Kingdom", "Germany", "Italy", "Switzerland", "Belgium", "South Africa", "India", "United Arab Emirates", "United States", "Australia", "China", "Netherlands", "Austria", "Spain", "Seychelles", "Madagascar"],
@@ -390,7 +391,7 @@ window.SITE = {
       waIntro: "Bonjour {name}, je voudrais réserver :", waFollow: "Bonjour, au sujet de ma demande {ref} :", bookSubject: "Nouvelle demande de réservation depuis le site {name}",
       cursorView: "Voir", cursorDrag: "Glisser", onSites: "Sur les sites de réservation", bookedHere: "Réservé ici", youKeep: "Vous gardez", commissionNote: "Les sites de réservation ajoutent environ {pct} % de frais et de commission.",
       demoTypeLabel: "Voir ce modèle pour", demoType_accommodation: "une maison d'hôtes ou villa", demoType_tour: "excursions en mer", demoType_rental: "location de voitures",
-      addDate: "Choisir", nNights: "{n} nuits", payNow: "Payer {amount} maintenant",
+      sections: "Sections de la page", addDate: "Choisir", nNights: "{n} nuits", payNow: "Payer {amount} maintenant",
       calTitle: "Choisissez vos dates", calPickIn: "Touchez votre jour d'arrivée", calPickOut: "Touchez maintenant votre jour de départ (min. {n})", calFree: "Libre", calBooked: "Réservé",
       calClear: "Effacer", calDone: "Valider", calMin: "À partir de ce jour, le minimum est de {n}.", calClash: "Certaines de ces dates sont déjà réservées. Choisissez d'autres dates.", calPriceNote: "Prix par nuit en {cur}",
       countries: ["Maurice", "France", "La Réunion", "Royaume-Uni", "Allemagne", "Italie", "Suisse", "Belgique", "Afrique du Sud", "Inde", "Émirats arabes unis", "États-Unis", "Australie", "Chine", "Pays-Bas", "Autriche", "Espagne", "Seychelles", "Madagascar"],

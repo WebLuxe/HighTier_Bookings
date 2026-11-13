@@ -1,5 +1,7 @@
 # Bookings · WebLuxe website template
 
+> **All content is an example.** WebLuxe Villa is a made-up business: the names, addresses, phone numbers, prices, photos (Unsplash), reviews and booked dates are samples to show the template. Replace them with the client's own before launch, and set `demo.enabled` to `false`.
+
 A booking-focused website for tourism businesses, so they take direct bookings instead of paying 15–25% commission to Booking.com, Expedia or GetYourGuide. One template covers three kinds of business: guesthouses and villas, boat trips and tours, and car rental. Try all three on the demo with the "See this template for" switch.
 
 **Live demo:** https://webluxe.github.io/HighTier_Bookings/ · **Admin demo:** https://webluxe.github.io/HighTier_Bookings/admin/?demo

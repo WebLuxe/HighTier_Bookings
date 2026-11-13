@@ -617,6 +617,136 @@ function notFound() {
   return `<section class="sec nf"><div class="wrap nf-in"><p class="eyebrow">404</p><h1 class="h1">${esc(ui('nfTitle'))}</h1><p class="lead">${esc(ui('nfText'))}</p>
     <p class="btns"><a class="btn btn-primary btn-lg" href="./">${esc(ui('nfHome'))}</a>${waHref() ? `<a class="btn btn-wa btn-lg" href="${waHref(tx(K().whatsappMessage))}" target="_blank" rel="noopener">${icon('wa')}WhatsApp</a>` : ''}</p></div></section>`;
 }
+/* ---------- one swipe, one section (home page) ----------
+   The browser snaps a whole screen at a time. Each section is sized to the screen below the header;
+   a thin strip (a band, a ticker) joins the section above it, and a list of rooms snaps room by room.
+   A section that ends up taller than the screen simply scrolls inside before moving on. */
+let snapRO = null;
+const docTop = (el) => { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; };
+function snapPages() {
+  const root = document.documentElement;
+  const on = document.body.dataset.page === 'home' && !reduced && (C.effects || {}).snap !== false;
+  root.classList.toggle('snap', on);
+  if (snapRO) { snapRO.disconnect(); snapRO = null; }
+  if (!on) return;
+  const HD = 61;   // the header once the page has scrolled (60px + its line)
+  const fit = () => {
+    const port = innerHeight - HD;
+    $$('main .snap-pt').forEach((e) => { e.classList.remove('snap-pt'); e.style.removeProperty('scroll-margin-top'); });
+    const ft = $('.ft'); if (ft) ft.classList.add('snap-end');
+    $$('main > *').forEach((e) => { e.style.removeProperty('--strip'); e.classList.remove('snap-strip', 'snap-hide'); });
+    const kids = $$('main > *').filter((el) => el.offsetHeight > 0);
+    const hero = kids[0];
+    if (hero && hero.classList.contains('hero')) {
+      const top = Math.max(0, Math.round(docTop(hero)));
+      hero.style.setProperty('--hero-top', top + 'px'); hero.style.scrollMarginTop = top + 'px';
+    }
+    for (const el of kids) {
+      if (el.offsetHeight >= port * 0.45 || el === hero) continue;
+      el.classList.add('snap-strip');
+      const prev = el.previousElementSibling;
+      if (!prev) continue;
+      prev.style.setProperty('--strip', el.offsetHeight + 'px');
+      const room = prev === hero ? innerHeight - (parseFloat(hero.style.getPropertyValue('--hero-top')) || 0) : port;
+      if (prev.offsetHeight + el.offsetHeight > room + 3) { prev.style.removeProperty('--strip'); el.classList.add('snap-hide'); }
+    }
+    for (const el of kids) {
+      if (el.classList.contains('snap-strip') || el.classList.contains('pin-spacer')) continue;   // a pinned scene brings its own snap points
+      const rows = $$('.rows > .row', el);
+      if (rows.length > 1 && el.offsetHeight > port * 1.4) {
+        const top = docTop(el);
+        const head = $('.sec-head', el);
+        el.style.setProperty('--fh', Math.round(docTop(rows[0]) - top) + 'px');
+        if (head) { head.classList.add('snap-pt'); head.style.scrollMarginTop = Math.round(docTop(head) - top + HD) + 'px'; }
+        rows.forEach((r, i) => { if (i > 0 || !head || docTop(r) + r.offsetHeight - top > port + 4) r.classList.add('snap-pt'); });
+      } else {
+        el.classList.add('snap-pt');
+        // a few pixels too tall: take them from the top padding so the section is exactly one screen
+        el.style.removeProperty('padding-top');
+        const over = el.offsetHeight - port;
+        if (el !== hero && over > 0 && over < 40) { const pt = parseFloat(getComputedStyle(el).paddingTop); if (pt - over >= 8) el.style.paddingTop = (pt - over) + 'px'; }
+      }
+    }
+  };
+  let t = 0;
+  const later = () => { clearTimeout(t); t = setTimeout(() => { fit(); snapPages.realign && snapPages.realign(); }, 120); };
+  fit();
+  if (!root.classList.contains('snap-on')) {
+    const settleOn = () => setTimeout(() => { const y = scrollY; root.classList.add('snap-on'); scrollTo({ top: y, behavior: 'instant' }); }, 700);
+    if (document.readyState === 'complete') settleOn(); else addEventListener('load', settleOn, { once: true });
+  }
+  snapRO = new ResizeObserver(later);
+  snapRO.observe($('main'));
+  if (!snapPages.bound) { snapPages.bound = true; snapWheel(); addEventListener('resize', () => document.documentElement.classList.contains('snap') && later()); addEventListener('load', () => document.documentElement.classList.contains('snap') && later()); }
+}
+
+/* computers: one wheel step, one trackpad swipe or one key press glides exactly one section (the trackpad's
+   leftover momentum is ignored); inside a section taller than the screen, or anything that scrolls by itself,
+   the page scrolls normally. Touch screens use the browser's own snapping (core.css). */
+function snapWheel() {
+  const root = document.documentElement;
+  let busy = false, lastT = 0, lastAbs = 0, settle = false;
+  const points = () => { const max = root.scrollHeight - innerHeight; return $$('.snap-pt, .snap-mark, .snap-end').map((el) => { if (el.classList.contains('snap-end')) return { y: Math.max(0, Math.round(max)), h: innerHeight }; const m = parseFloat(getComputedStyle(el).scrollMarginTop) || 0; return { y: Math.min(Math.round(max), Math.max(0, Math.round(docTop(el) - m))), h: el.offsetHeight + m }; }).sort((a, b) => a.y - b.y); };
+  const innerScroll = (el, dir) => { for (; el && el !== document.body; el = el.parentElement) { const o = getComputedStyle(el).overflowY; if ((o === 'auto' || o === 'scroll') && el.scrollHeight > el.clientHeight + 1 && (dir > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0)) return true; } return false; };
+  const active = () => root.classList.contains('snap') && innerWidth >= 760 && !matchMedia('(pointer: coarse)').matches && !root.classList.contains('menu-open') && !$('dialog[open]');
+  // is the page inside a section taller than the screen, with more of it to read in this direction?
+  const reading = (dir) => { const y = scrollY, vh = innerHeight, cur = points().filter((p) => p.y <= y + 2).pop(); return !!(cur && cur.h > vh + 2 && (dir > 0 ? y + vh < cur.y + cur.h - 2 : y > cur.y + 2)); };
+  const go = (dir, to) => {
+    const y = scrollY, P = points();
+    const next = to != null ? to : dir > 0 ? P.find((p) => p.y > y + 2) : P.filter((p) => p.y < y - 2).pop();
+    if (!next) return;
+    busy = true;
+    scrollTo({ top: next.y, behavior: reduced ? 'auto' : 'smooth' });
+    let k = 0;
+    const check = () => { if (Math.abs(scrollY - next.y) < 2 || ++k > 100) { busy = false; settle = true; } else requestAnimationFrame(check); };
+    requestAnimationFrame(check);
+  };
+  // after the layout moves (fonts, photos, a re-measure), a page resting a little off a section settles back onto it
+  snapPages.realign = () => { if (!active() || busy) return; const y = scrollY; let best = null; for (const p of points()) if (!best || Math.abs(p.y - y) < Math.abs(best.y - y)) best = p; if (best && Math.abs(best.y - y) > 1 && Math.abs(best.y - y) < 80 && !reading(1)) scrollTo({ top: best.y, behavior: 'instant' }); };
+  addEventListener('wheel', (e) => {
+    if (!active() || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const dir = Math.sign(e.deltaY);
+    if (!dir || innerScroll(e.target, dir) || reading(dir)) return;
+    e.preventDefault();
+    const now = performance.now(), gap = now - lastT, abs = Math.abs(e.deltaY);
+    lastT = now;
+    const fresh = gap > 220 || abs > lastAbs * 1.6 + 8;   // a new gesture, not the tail of the last one
+    lastAbs = abs;
+    if (busy || (settle && !fresh)) return;
+    settle = false;
+    go(dir);
+  }, { passive: false });
+  addEventListener('keydown', (e) => {
+    if (!active() || e.altKey || e.ctrlKey || e.metaKey || e.target.closest('input, textarea, select, button, [contenteditable], .cal')) return;
+    const k = e.key;
+    const dir = k === 'ArrowDown' || k === 'PageDown' || (k === ' ' && !e.shiftKey) ? 1 : k === 'ArrowUp' || k === 'PageUp' || (k === ' ' && e.shiftKey) ? -1 : 0;
+    if (k === 'Home' || k === 'End') { e.preventDefault(); const P = points(); if (P.length) go(0, k === 'Home' ? { y: 0 } : P[P.length - 1]); return; }
+    if (!dir || reading(dir)) return;
+    e.preventDefault();
+    if (!busy) go(dir);
+  });
+}
+
+/* ---------- phones: a list shown one at a time with buttons, never a sideways swipe ---------- */
+function pager(list) {
+  if (!list || list.dataset.pg) return;
+  const items = [...list.children];
+  if (items.length < 2) return;
+  list.dataset.pg = '1';
+  const nav = document.createElement('div');
+  nav.className = 'pg-nav';
+  nav.innerHTML = `<button type="button" class="pg-b" data-pgo="-1" aria-label="${esc(ui('prev'))}">${icon('chevL')}</button><span class="pg-n" aria-live="polite"></span><button type="button" class="pg-b" data-pgo="1" aria-label="${esc(ui('next'))}">${icon('chevR')}</button>`;
+  list.after(nav);
+  let i = 0;
+  const show = (k) => {
+    i = (k + items.length) % items.length;
+    items.forEach((el, j) => { el.classList.toggle('pg-on', j === i); if (j === i) el.classList.add('in'); });
+    $('.pg-n', nav).textContent = `${i + 1} / ${items.length}`;
+  };
+  nav.addEventListener('click', (e) => { const b = e.target.closest('[data-pgo]'); if (b) show(i + Number(b.dataset.pgo)); });
+  show(0);
+}
+
 function render() {
   const page = document.body.dataset.page || 'home';
   const app = $('#app');
@@ -625,6 +755,7 @@ function render() {
   document.documentElement.classList.remove('menu-open');
   setMeta(page); setSchema(); wireCore();
   T.wire && T.wire(page);
+  snapPages();
   reveal(); countUp(); loadLater();
   document.documentElement.classList.add('ready');
 }
@@ -889,6 +1020,8 @@ const TIER = {
     return o;
   },
   wire(page) {
+    alive(); if (page === 'home') sectionDots();
+    if (matchMedia('(max-width: 759px)').matches && !fxWanted()) pager($('.day-track'));   // no motion layer: the day, one moment at a time
     document.documentElement.classList.toggle('has-book-bar', page !== 'book');
     $$('[data-cur]').forEach((b) => b.addEventListener('click', () => setCur(curList()[(curList().indexOf(cur) + 1) % curList().length])));
     $$('[data-set-cur]').forEach((b) => b.addEventListener('click', () => setCur(b.dataset.setCur)));
@@ -903,6 +1036,39 @@ const TIER = {
   },
 };
 function setCur(c) { cur = c; store.set('wl-cur', c); const y = scrollY; const st = bookState && bookState(); render(); if (st) restoreBook(st); scrollTo(0, y); }
+
+/* ---------- living photos: big pictures breathe slowly while they are on screen ---------- */
+function alive() {
+  const els = $$('.row-pics, .ip, .plx, .fcta-bg, .polas li, .intro-pics, .phead-bg, .lp-gal');
+  if (reduced || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((es) => es.forEach((e) => {
+    const el = e.target;
+    el.classList.toggle('alive', e.isIntersecting);
+    // room photos open once; when the opening ends the clip is dropped so nothing clips while scrolling
+    if (e.isIntersecting && el.classList.contains('row-pics') && !el.classList.contains('opened')) {
+      el.classList.add('opened');
+      const end = () => el.classList.add('done');
+      el.addEventListener('transitionend', (ev) => { if (ev.propertyName === 'clip-path') end(); }, { once: true });
+      setTimeout(end, 1800);
+    }
+  }), { rootMargin: '0px 0px -12% 0px' });
+  els.forEach((el) => io.observe(el));
+}
+/* ---------- the home page's section dots (computers): where you are, and a jump to any section ---------- */
+function sectionDots() {
+  if (innerWidth < 1100) return;
+  const secs = $$('main > section, main > .pin-spacer > section').filter((s) => !s.classList.contains('ticker') && s.offsetHeight > innerHeight * 0.4);
+  if (secs.length < 3) return;
+  const label = (s) => ((s.querySelector('.sec-head .h2, .h1, .plx-q, .day-head .h2') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  let nav = $('.sdots');
+  if (nav) nav.remove();
+  nav = document.createElement('nav'); nav.className = 'sdots'; nav.setAttribute('aria-label', ui('sections'));
+  nav.innerHTML = secs.map((s, i) => `<button type="button" data-sdot="${i}" aria-label="${esc(label(s) || String(i + 1))}"><span>${esc(label(s))}</span></button>`).join('');
+  document.body.append(nav);
+  nav.addEventListener('click', (e) => { const b = e.target.closest('[data-sdot]'); if (!b) return; const s = secs[+b.dataset.sdot]; const top = s.getBoundingClientRect().top + scrollY - (s.classList.contains('hero') ? 0 : 60); window.__lenis ? window.__lenis.scrollTo(top, { duration: 1.2 }) : scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' }); });
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { const i = secs.indexOf(e.target); $$('[data-sdot]', nav).forEach((b, k) => b.toggleAttribute('aria-current', k === i)); nav.classList.toggle('on-dark', !!e.target.closest('.hero, .plx, .fcta, [data-day]')); } }), { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach((s) => io.observe(s));
+}
 
 /* ---------- shared bits ---------- */
 const stars = (n = 5) => `<span class="stars" role="img" aria-label="${esc(ui('ratingOf', { n }))}">${icon('star').repeat(Math.round(n))}</span>`;
@@ -1006,7 +1172,7 @@ function loadFx(page) {
   const go = () => import(new URL('js/fx.js', document.baseURI).href)
     .then((m) => m.start({ C, page, ui, money, tx }))
     .then((api) => { window.__fx = api; })
-    .catch((e) => { document.documentElement.classList.remove('fx'); console.info('WebLuxe effects off:', e && e.message); });
+    .catch((e) => { document.documentElement.classList.remove('fx'); if (matchMedia('(max-width: 759px)').matches) pager($('.day-track')); console.info('WebLuxe effects off:', e && e.message); });
   if (document.readyState === 'complete') setTimeout(go, 150); else addEventListener('load', () => setTimeout(go, 150), { once: true });
 }
 
