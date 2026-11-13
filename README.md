@@ -2,7 +2,7 @@
 
 A booking-focused website for tourism businesses, so they take direct bookings instead of paying 15–25% commission to Booking.com, Expedia or GetYourGuide. One template covers three kinds of business: guesthouses and villas, boat trips and tours, and car rental. Try all three on the demo with the "See this template for" switch.
 
-**Live demo:** https://webluxe.github.io/HighTier_Bookings/
+**Live demo:** https://webluxe.github.io/HighTier_Bookings/ · **Admin demo:** https://webluxe.github.io/HighTier_Bookings/admin/?demo
 
 Plain HTML, CSS and JavaScript. No build step, no framework, nothing to install. Upload the folder to any host (GitHub Pages, Netlify, Vercel, cPanel) and it works.
 
@@ -86,3 +86,58 @@ Loads after the page is usable, only on devices that can carry it, and checks th
 ## The hero video
 
 Set `hero.video` (wide, for computers) and `hero.videoTall` (upright, for phones held upright), plus their stills `hero.poster` and `hero.posterTall`. Leave `video` empty and the hero photos take turns instead. Keep videos short (10–15 s), muted, H.264, 1280x720 and 720x1280, under 4 MB: those play smoothly on every phone, including budget Androids. The demo videos are from Mixkit (see `assets/video/CREDITS.md`).
+
+## New in this version
+
+- **Availability calendars**: on each room's page and the booking page, with the price of every night, booked nights crossed out (`listings[].booked`) and the minimum stay enforced; a pop-up calendar in the hero search.
+- **Admin panel** at `/admin/` (below): edit texts, photos, rooms, prices, extras and availability from a phone; inbox, payments and staff logins.
+- **Payments**: a "Pay the deposit" button after a booking request (`payments.link`).
+- **Google**: Google Business profile in the schema.org data, "Review us on Google", canonical and EN/FR links, `sitemap.xml`, `robots.txt`, a Search Console slot and a branded `404.html`.
+- **Prices in any base currency** (`currency.base`, rupees if not set) and ratings out of 10 (`reviews.summary.best`).
+- Phones: WhatsApp sits in the bottom booking bar instead of floating over the page.
+- The demo business is now **WebLuxe Villa**.
+
+## Google set-up (before launch)
+
+1. **`seo.siteUrl`** in `config.js`: the final address, e.g. `https://www.edenvilla.mu/`. This turns on the canonical link and the English/French links Google reads on every page.
+2. **`sitemap.xml` and `robots.txt`**: replace `https://www.your-domain.mu/` with the same address.
+3. **Google Search Console**: add the site, paste the verification tag into the marked line in `index.html` (or verify by DNS), then submit `sitemap.xml`.
+4. **`contact.googleBusiness`**: the client's Google Business / Maps link. "Get directions" uses it and the schema.org data tells Google the site and the listing are the same place. **`contact.googleReview`**: the profile's "write a review" link, which shows the "Review us on Google" buttons.
+5. **`404.html`** is ready: a mistyped address shows a branded page with a way home instead of the host's error page.
+
+## Admin panel (`/admin/`)
+
+Open **`/admin/`** on the website. It edits everything in Mid, plus **payments** (a "Pay the deposit" button), **staff logins** (invite and remove people), the "A day here" story and the photo strip; and the **Inbox**, where confirming a booking blocks its dates in the calendar.
+
+- **Preview** opens the real website with the changes that are not published yet (on that device only).
+- **Publish** saves them to `data/site.js` in this repository; GitHub Pages shows them about a minute later. `config.js` stays the starting point: delete `data/site.js` to go back to it.
+- **Try the admin without signing in** is a demo mode for prospects: nothing is saved online.
+
+### Signing in
+
+Each person signs in with a GitHub key for **WebLuxe/HighTier_Bookings (or the client's own copy)**. The key stays on their device.
+
+1. On github.com: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. **Repository access → Only select repositories →** this repository.
+3. **Permissions → Repository → Contents: Read and write** (and **Administration: Read and write** for the owner, to manage staff). Set an expiry, generate, and paste the key into the sign-in.
+
+Fine-grained keys only work on repositories owned by the person's own account (or an organisation they belong to). For a client who will manage the site themselves, **transfer the repository to their GitHub account** (Settings → Transfer) and update `admin.repo` in `config.js`. Someone added as a collaborator on another person's repository uses a **classic** token with only **public_repo** ticked.
+
+### Inbox (booking requests and messages)
+
+Every request from the website is also written to a Google Sheet that the owner owns: free, no server.
+
+1. Create a Google Sheet, open **Extensions → Apps Script**, and paste [`admin/inbox.gs`](admin/inbox.gs).
+2. Change `SECRET` to a long word only the owner knows (optionally put an email in `NOTIFY` to get an email per request).
+3. **Deploy → New deployment → Web app**, execute as *Me*, access *Anyone*. Copy the web-app address.
+4. In the admin **Inbox**: paste the address and Publish; type the SECRET as the inbox key (kept on that device).
+
+Requests still go by email/Formspree or WhatsApp as before; the inbox keeps them all in one place with a status (new, replied, confirmed, declined).
+
+### Payments
+
+In the admin **Payments** (or `payments` in `config.js`): a payment link such as `https://paypal.me/yourname/{amount}{currency}`, a Stripe payment page or the bank's. After a booking request the guest sees **Pay … now** with the deposit (`booking.depositPct`, or the full total when 0). Nobody is charged automatically: the owner confirms the dates first.
+
+### Staff logins
+
+In the admin **Staff logins** the owner invites people by their GitHub username and removes them when they leave. Each person has their own key, so access can be taken away from one person without changing anyone else's.

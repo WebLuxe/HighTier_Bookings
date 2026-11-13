@@ -11,16 +11,18 @@
      rates in "currency" below; update them now and then.
    - Photos: img("unsplash-id", alt) for Unsplash, or "assets/photos/x.jpg".
    ========================================================================== */
+/* Demo only: booked dates counted from today, so the calendars always show some. For a real client write the dates: ["2026-12-20", "2027-01-03"] */
+function soon(inDays, nights) { const d = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10); return [d(inDays), d(inDays + nights)]; }
 function img(id, alt) { return { src: id.includes('/') ? id : `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&q=70`, alt: alt || '' }; }
 
 window.SITE = {
 
   /* ---------- 1. The business ---------- */
   type: "accommodation",
-  name: "Villa Corail",
-  legalName: "Villa Corail Boutique Guesthouse Ltd",
+  name: "WebLuxe Villa",
+  legalName: "WebLuxe Villa Boutique Guesthouse Ltd",
   tagline: { en: "A boutique guesthouse of six suites, two minutes from the lagoon at Trou aux Biches.", fr: "Une maison d'hôtes de charme de six suites, à deux minutes du lagon de Trou aux Biches." },
-  logo: { image: "", mark: "V", text: "Villa Corail" },
+  logo: { image: "", mark: "W", text: "WebLuxe Villa" },
 
   /* ---------- 2. Brand ---------- */
   colors: {
@@ -56,8 +58,8 @@ window.SITE = {
   contact: {
     phone: "+230 5123 4567",
     whatsapp: "23051234567",
-    whatsappMessage: { en: "Hello Villa Corail, I would like to ask about a stay.", fr: "Bonjour Villa Corail, je voudrais des informations pour un séjour." },
-    email: "stay@villacorail.mu",
+    whatsappMessage: { en: "Hello WebLuxe Villa, I would like to ask about a stay.", fr: "Bonjour WebLuxe Villa, je voudrais des informations pour un séjour." },
+    email: "stay@webluxevilla.mu",
     responseTime: { en: "We reply within 2 hours, 8 am to 9 pm Mauritius time.", fr: "Nous répondons sous 2 heures, de 8 h à 21 h heure de Maurice." },
     street: "Royal Road, Trou aux Biches",
     city: "Pamplemousses",
@@ -68,13 +70,16 @@ window.SITE = {
     lat: -20.0365, lng: 57.5466,
     mapEmbed: "https://www.google.com/maps?q=Trou+aux+Biches+Mauritius&z=14&output=embed",
     mapsLink: "",
+    // Google Business profile: the profile / Maps link, and its "write a review" link
+    googleBusiness: "https://www.google.com/maps/search/?api=1&query=Trou+aux+Biches+Mauritius",
+    googleReview: "https://www.google.com/maps/search/?api=1&query=Trou+aux+Biches+Mauritius",
   },
   hours: { mon: "08:00-21:00", tue: "08:00-21:00", wed: "08:00-21:00", thu: "08:00-21:00", fri: "08:00-21:00", sat: "08:00-21:00", sun: "08:00-21:00" },
   social: { instagram: "https://instagram.com", facebook: "https://facebook.com", tripadvisor: "https://tripadvisor.com", google: "", tiktok: "", youtube: "" },
 
   /* ---------- 4. Google and link previews ---------- */
   seo: {
-    title: { en: "Villa Corail | Boutique guesthouse in Trou aux Biches, Mauritius", fr: "Villa Corail | Maison d'hôtes de charme à Trou aux Biches, Maurice" },
+    title: { en: "WebLuxe Villa | Boutique guesthouse in Trou aux Biches, Mauritius", fr: "WebLuxe Villa | Maison d'hôtes de charme à Trou aux Biches, Maurice" },
     description: { en: "Six suites and a private pool villa two minutes from the lagoon. Book direct for the best price, free cancellation and airport pick-up.", fr: "Six suites et une villa avec piscine à deux minutes du lagon. Réservez en direct : meilleur prix, annulation gratuite et transfert aéroport." },
     image: "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=70",
     favicon: "assets/favicon.svg",
@@ -89,7 +94,7 @@ window.SITE = {
     sendVia: "both",     // "both", "endpoint" or "whatsapp"
     depositPct: 30,      // shown as "30% deposit to confirm". 0 hides it
     defaultUnits: 4,     // nights pre-filled in the search bar
-    refPrefix: "VC",     // booking reference, e.g. VC-8K2QF
+    refPrefix: "WV",     // booking reference, e.g. VC-8K2QF
     commissionPct: 18,   // what booking sites add. Used for the "you keep" receipt on the home page; 0 hides it
     times: [],           // tours only: departure times, e.g. ["08:30", "13:30"]
     childAge: "",        // tours only, e.g. { en: "ages 3–11", fr: "3 à 11 ans" }
@@ -105,6 +110,7 @@ window.SITE = {
       id: "garden-suite", name: { en: "Garden Suite", fr: "Suite Jardin" }, badge: "",
       short: { en: "A calm suite opening onto the tropical garden, with an outdoor rain shower.", fr: "Une suite calme ouverte sur le jardin tropical, avec douche extérieure." },
       price: 4800, capacity: 2, minUnits: 2,
+      booked: [soon(3, 5), soon(16, 4), soon(30, 9)],   // nights taken, crossed out in the calendars: [first night, day they leave]
       seasons: [{ name: { en: "Festive season", fr: "Fêtes de fin d'année" }, from: "12-18", to: "01-06", price: 6200 }, { name: { en: "Winter offer", fr: "Offre d'hiver" }, from: "06-01", to: "08-31", price: 4200 }],
       images: [img("1611892440504-42a792e24d32", "Garden Suite bedroom with a wooden bed"), img("1731336478850-6bce7235e320", "White bed with a wooden headboard"), img("1646974400439-8472d58bb19e", "Bathroom with a large bathtub")],
       features: [{ icon: "bed", label: { en: "King bed", fr: "Lit king size" } }, { icon: "users", label: { en: "2 guests", fr: "2 personnes" } }, { icon: "snow", label: { en: "Air-con", fr: "Climatisation" } }, { icon: "leaf", label: { en: "Garden view", fr: "Vue jardin" } }],
@@ -115,6 +121,7 @@ window.SITE = {
       id: "lagoon-room", name: { en: "Lagoon View Room", fr: "Chambre Vue Lagon" }, badge: { en: "Most booked", fr: "La plus réservée" },
       short: { en: "Upstairs, with a balcony looking straight over the lagoon.", fr: "À l'étage, avec un balcon face au lagon." },
       price: 6200, capacity: 2, minUnits: 2,
+      booked: [soon(1, 4), soon(11, 6), soon(26, 5), soon(48, 7)],   // nights taken, crossed out in the calendars: [first night, day they leave]
       seasons: [{ name: { en: "Festive season", fr: "Fêtes de fin d'année" }, from: "12-18", to: "01-06", price: 7900 }, { name: { en: "Winter offer", fr: "Offre d'hiver" }, from: "06-01", to: "08-31", price: 5400 }],
       images: [img("1721369483526-62f48a00b949", "Bedroom with a view over the beach and ocean"), img("1774280954999-9758f11f3d41", "Bedroom with a large window onto greenery"), img("1776525433347-13ffc965601a", "Bright bathroom with a freestanding bathtub")],
       features: [{ icon: "bed", label: { en: "Queen bed", fr: "Lit queen size" } }, { icon: "users", label: { en: "2 guests", fr: "2 personnes" } }, { icon: "wave", label: { en: "Sea view", fr: "Vue mer" } }, { icon: "snow", label: { en: "Air-con", fr: "Climatisation" } }],
@@ -125,6 +132,7 @@ window.SITE = {
       id: "canopy-suite", name: { en: "Canopy Suite", fr: "Suite Canopée" }, badge: "",
       short: { en: "Our largest suite: a four-poster bed, a lounge and a terrace in the treetops.", fr: "Notre plus grande suite : lit à baldaquin, salon et terrasse dans les arbres." },
       price: 8500, capacity: 3, minUnits: 2,
+      booked: [soon(6, 3), soon(20, 8), soon(41, 4)],   // nights taken, crossed out in the calendars: [first night, day they leave]
       seasons: [{ name: { en: "Festive season", fr: "Fêtes de fin d'année" }, from: "12-18", to: "01-06", price: 10900 }],
       images: [img("1791535767615-2fb43a41e8a8", "Canopy bed suite overlooking green trees"), img("1646974400439-321c4a9240b9", "Suite lounge with a sofa and tall windows"), img("1664917555352-f3f66e57ccc2", "Warm-toned bathroom with a bathtub")],
       features: [{ icon: "bed", label: { en: "Four-poster bed", fr: "Lit à baldaquin" } }, { icon: "users", label: { en: "Up to 3", fr: "Jusqu'à 3" } }, { icon: "home", label: { en: "45 m²", fr: "45 m²" } }, { icon: "sun", label: { en: "Terrace", fr: "Terrasse" } }],
@@ -135,6 +143,7 @@ window.SITE = {
       id: "pool-villa", name: { en: "Private Pool Villa", fr: "Villa Piscine Privée" }, badge: { en: "Family favourite", fr: "Coup de cœur des familles" },
       short: { en: "A two-bedroom villa with its own pool, kitchen and garden.", fr: "Une villa de deux chambres avec piscine, cuisine et jardin privés." },
       price: 14500, capacity: 4, minUnits: 3,
+      booked: [soon(9, 7), soon(24, 5), soon(52, 10)],   // nights taken, crossed out in the calendars: [first night, day they leave]
       seasons: [{ name: { en: "Festive season", fr: "Fêtes de fin d'année" }, from: "12-18", to: "01-06", price: 18500 }, { name: { en: "Winter offer", fr: "Offre d'hiver" }, from: "06-01", to: "08-31", price: 12500 }],
       images: [img("1596178067639-5c6e68aea6dc", "Beachfront villa with a private pool"), img("1675657144361-98ae33e6b6f9", "Private villa pool with a sun lounger"), img("1609602126247-4ab7188b4aa1", "Villa room opening onto the lagoon")],
       features: [{ icon: "bed", label: { en: "2 bedrooms", fr: "2 chambres" } }, { icon: "users", label: { en: "Up to 4", fr: "Jusqu'à 4" } }, { icon: "pool", label: { en: "Private pool", fr: "Piscine privée" } }, { icon: "coffee", label: { en: "Kitchen", fr: "Cuisine" } }],
@@ -173,16 +182,16 @@ window.SITE = {
       poster: "assets/video/lagoon-poster.jpg",   // the still shown while the video loads
       videoTall: "assets/video/lagoon-tall.mp4",  // optional: an upright (720x1280) version for phones held upright, much sharper there
       posterTall: "assets/video/lagoon-tall-poster.jpg",
-      images: [img("1582719508461-905c673771fd", "Infinity pool overlooking the sea"), img("1622779536320-bb5f5b501a06", "Palm-fringed beach beside a turquoise lagoon"), img("1607849973414-68ea06463344", "Aerial view of a sandbank in the lagoon")],
+      images: [img("1582719508461-905c673771fd", "Infinity pool overlooking the sea"), img("1634972312739-d7237018e06a", "A beach in Mauritius with the mountains behind"), img("1513415563383-4e580ed27a46", "Le Morne and its lagoon from the air")],
     },
     ticker: {   // the band of big words that slides with the scroll. Empty list hides it
       words: [{ en: "Trou aux Biches", fr: "Trou aux Biches" }, { en: "Six suites", fr: "Six suites" }, { en: "One pool villa", fr: "Une villa piscine" }, { en: "Breakfast by the lagoon", fr: "Petit-déjeuner au bord du lagon" }, { en: "Mauritius", fr: "Maurice" }],
     },
     day: {      // "A day at": hour by hour. tone = the background colour while that hour is on screen
-      eyebrow: { en: "A day at Villa Corail", fr: "Une journée à Villa Corail" },
+      eyebrow: { en: "A day at WebLuxe Villa", fr: "Une journée à WebLuxe Villa" },
       title: { en: "From first swim to last light", fr: "De la première baignade à la dernière lueur" },
       items: [
-        { time: "07:00", tone: "#F7E1C6", image: img("1622779536320-bb5f5b501a06", "The beach at sunrise"), title: { en: "A swim before anyone else", fr: "Une baignade avant tout le monde" }, text: { en: "The lagoon is flat and glassy. Towels are already on the gate.", fr: "Le lagon est lisse comme un miroir. Les serviettes sont déjà au portail." } },
+        { time: "07:00", tone: "#F7E1C6", image: img("1634972312739-d7237018e06a", "The beach at sunrise"), title: { en: "A swim before anyone else", fr: "Une baignade avant tout le monde" }, text: { en: "The lagoon is flat and glassy. Towels are already on the gate.", fr: "Le lagon est lisse comme un miroir. Les serviettes sont déjà au portail." } },
         { time: "09:30", tone: "#FBEBD6", image: img("1756115374220-c43b04be3a53", "Floating breakfast in the pool"), title: { en: "Breakfast on the water", fr: "Petit-déjeuner sur l'eau" }, text: { en: "Mango, papaya, fresh bread from the village, coffee from the hills.", fr: "Mangue, papaye, pain frais du village, café des hauts." } },
         { time: "13:00", tone: "#CFE9EA", image: img("1609601470014-5754ed429f30", "A sandbank in the lagoon"), title: { en: "The sandbank at low tide", fr: "Le banc de sable à marée basse" }, text: { en: "Twenty minutes by boat. Bring a mask, leave the phone.", fr: "Vingt minutes en bateau. Prenez un masque, laissez le téléphone." } },
         { time: "17:45", tone: "#E9A274", image: img("1580629844914-374f3b707fe5", "Palms against a golden sunset"), title: { en: "Golden hour", fr: "L'heure dorée" }, text: { en: "Rum punch on the terrace while the sky turns pink.", fr: "Un punch au rhum sur la terrasse pendant que le ciel rosit." } },
@@ -204,7 +213,7 @@ window.SITE = {
       eyebrow: { en: "Welcome", fr: "Bienvenue" },
       title: { en: "A small house, run by the family", fr: "Une petite maison, tenue par la famille" },
       text: [
-        { en: "Villa Corail was our grandparents' beach house. Today it has six suites and one villa, a pool under the palms and a breakfast terrace that smells of fresh mango and coffee.", fr: "Villa Corail était la maison de plage de nos grands-parents. Elle compte aujourd'hui six suites et une villa, une piscine sous les palmiers et une terrasse où le petit-déjeuner sent la mangue et le café." },
+        { en: "WebLuxe Villa was our grandparents' beach house. Today it has six suites and one villa, a pool under the palms and a breakfast terrace that smells of fresh mango and coffee.", fr: "WebLuxe Villa était la maison de plage de nos grands-parents. Elle compte aujourd'hui six suites et une villa, une piscine sous les palmiers et une terrasse où le petit-déjeuner sent la mangue et le café." },
         { en: "We are small on purpose. We know every guest by name, and we will happily plan your days, from the best snorkelling spot to the right table for sunset.", fr: "Nous restons petits exprès. Nous connaissons chaque hôte par son prénom, et nous organisons volontiers vos journées, du meilleur spot de snorkeling à la bonne table pour le coucher du soleil." },
       ],
       signature: { en: "Anaïs & Kevin, your hosts", fr: "Anaïs & Kevin, vos hôtes" },
@@ -244,7 +253,7 @@ window.SITE = {
     },
     instagram: {
       eyebrow: { en: "Follow along", fr: "Suivez-nous" }, title: { en: "Life at the villa", fr: "La vie à la villa" },
-      handle: "@villacorail.mu", url: "https://instagram.com",
+      handle: "@webluxevilla.mu", url: "https://instagram.com",
       // caption: the handwritten line under each polaroid (optional)
       images: [
         { ...img("1687151621813-75a278d025cb", "Breakfast tray on the edge of the pool"), caption: { en: "breakfast, 8 am", fr: "petit-déj, 8 h" } },
@@ -256,7 +265,7 @@ window.SITE = {
       ],
     },
     gallery: {
-      images: [img("1582719508461-905c673771fd", "Infinity pool overlooking the sea"), img("1793891546320-b031d3d7a040", "Doorway view of palms, pool and the ocean"), img("1611892440504-42a792e24d32", "Garden Suite bedroom"), img("1756115374220-c43b04be3a53", "Floating breakfast in the pool"), img("1622779536320-bb5f5b501a06", "The beach at Trou aux Biches"), img("1791535767615-2fb43a41e8a8", "The Canopy Suite"), img("1759372945658-1e9f56e751bd", "The villa at twilight"), img("1596178067639-5c6e68aea6dc", "The Private Pool Villa"), img("1687151621813-75a278d025cb", "Breakfast by the pool"), img("1790276319385-67459b89a702", "View over the palm-lined beach"), img("1721369483526-62f48a00b949", "Lagoon View Room"), img("1580629844914-374f3b707fe5", "Sunset through the palms")],
+      images: [img("1582719508461-905c673771fd", "Infinity pool overlooking the sea"), img("1793891546320-b031d3d7a040", "Doorway view of palms, pool and the ocean"), img("1611892440504-42a792e24d32", "Garden Suite bedroom"), img("1756115374220-c43b04be3a53", "Floating breakfast in the pool"), img("1634972312739-d7237018e06a", "The beach at Trou aux Biches"), img("1791535767615-2fb43a41e8a8", "The Canopy Suite"), img("1759372945658-1e9f56e751bd", "The villa at twilight"), img("1596178067639-5c6e68aea6dc", "The Private Pool Villa"), img("1687151621813-75a278d025cb", "Breakfast by the pool"), img("1790276319385-67459b89a702", "View over the palm-lined beach"), img("1721369483526-62f48a00b949", "Lagoon View Room"), img("1580629844914-374f3b707fe5", "Sunset through the palms")],
     },
     faq: {
       eyebrow: { en: "Before you come", fr: "Avant de venir" }, title: { en: "Questions, answered", fr: "Vos questions" },
@@ -271,17 +280,25 @@ window.SITE = {
     finalCta: {
       title: { en: "Your lagoon is waiting", fr: "Votre lagon vous attend" },
       text: { en: "Book direct for our best price and free airport pick-up on stays of 7 nights or more.", fr: "Réservez en direct pour notre meilleur prix et le transfert aéroport offert dès 7 nuits." },
-      image: img("1607849973414-68ea06463344", "Sandbank in a turquoise lagoon"),
+      image: img("1513415563383-4e580ed27a46", "Le Morne and its lagoon from the air"),
     },
     pageHeads: {
       listings: { title: { en: "Suites & villa", fr: "Suites et villa" }, text: { en: "Six suites and one private pool villa, each with its own character.", fr: "Six suites et une villa avec piscine privée, chacune avec son caractère." }, image: img("1596178067639-5c6e68aea6dc", "") },
       gallery: { title: { en: "Gallery", fr: "Galerie" }, text: { en: "A look around the villa, the garden and the lagoon.", fr: "Un tour de la villa, du jardin et du lagon." }, image: img("1793891546320-b031d3d7a040", "") },
       reviews: { title: { en: "Guest reviews", fr: "Avis des hôtes" }, text: { en: "4.9 out of 5 from 286 stays.", fr: "4,9 sur 5 pour 286 séjours." }, image: img("1580629844914-374f3b707fe5", "") },
-      contact: { title: { en: "Contact & location", fr: "Contact et accès" }, text: { en: "Questions before you book? We reply within two hours.", fr: "Une question avant de réserver ? Réponse sous deux heures." }, image: img("1622779536320-bb5f5b501a06", "") },
+      contact: { title: { en: "Contact & location", fr: "Contact et accès" }, text: { en: "Questions before you book? We reply within two hours.", fr: "Une question avant de réserver ? Réponse sous deux heures." }, image: img("1634972312739-d7237018e06a", "") },
     },
   },
 
   credit: { name: "WebLuxe", url: "https://webluxe.github.io/WebLuxe/" },
+
+  /* ---------- Admin panel (/admin/). Changes are saved to data/site.js in this GitHub repository ---------- */
+  admin: { repo: "WebLuxe/HighTier_Bookings", branch: "main" },   // for a client: their own repository
+  inbox: { url: "" },   // the Google Sheet inbox: paste the web-app address from admin/inbox.gs (see README). Empty = requests go by email/WhatsApp only
+  payments: {   // a "Pay the deposit" button after a booking request. {amount} {currency} {ref} are filled in
+    link: "",   // e.g. "https://paypal.me/yourname/{amount}{currency}" or a Stripe / bank payment page. Empty hides the button
+    note: { en: "We confirm availability before you pay; if your dates are taken, the deposit is refunded in full.", fr: "Nous confirmons la disponibilité avant le paiement ; si vos dates sont prises, l'acompte est remboursé intégralement." },
+  },
 
   /* ---------- 8. Demo mode (WebLuxe sales demos). Set enabled: false for a real client ---------- */
   demo: {
@@ -311,6 +328,7 @@ window.SITE = {
       demoTitle: "This is a demo", demoWa: "On the real website, this opens WhatsApp with this message ready to send:", demoTel: "On the real website, this calls the business:",
       demoMail: "On the real website, this opens an email to the business.", demoForm: "On the real website, the business receives this:",
       demoStudio: "Get a site like this", demoStudioMsg: "Hello WebLuxe, I saw the {site} demo and would like a website like it.",
+      reviewOnGoogle: "Review us on Google", seeOnGoogle: "See us on Google Maps", nfTitle: "This page has gone for a swim", nfText: "The address may have a typo, or the page has moved. Everything is still here on the home page.", nfHome: "Go to the home page",
       // ----- this template -----
       navGallery: "Gallery", navReviews: "Reviews", navContact: "Contact", breadcrumb: "You are here", currency: "Change currency",
       bookNow: "Book now", bookDirect: "Book direct", from: "From", checkAvailability: "Check availability", readAll: "Read all reviews", ratingOf: "{n} out of 5 stars",
@@ -329,6 +347,9 @@ window.SITE = {
       waIntro: "Hello {name}, I would like to book:", waFollow: "Hello, about my booking request {ref}:", bookSubject: "New booking request from the {name} website",
       cursorView: "View", cursorDrag: "Drag", onSites: "On booking sites", bookedHere: "Booked here", youKeep: "You keep", commissionNote: "Booking sites add around {pct}% in fees and commission.",
       demoTypeLabel: "See this template for", demoType_accommodation: "a guesthouse or villa", demoType_tour: "boat trips and tours", demoType_rental: "car rental",
+      addDate: "Add date", nNights: "{n} nights", payNow: "Pay {amount} now",
+      calTitle: "Choose your dates", calPickIn: "Tap your check-in day", calPickOut: "Now tap your check-out day (min. {n})", calFree: "Available", calBooked: "Booked",
+      calClear: "Clear dates", calDone: "Done", calMin: "From this day the minimum is {n}.", calClash: "Some of those dates are already booked. Pick other dates.", calPriceNote: "Prices per night in {cur}",
       countries: ["Mauritius", "France", "Réunion", "United Kingdom", "Germany", "Italy", "Switzerland", "Belgium", "South Africa", "India", "United Arab Emirates", "United States", "Australia", "China", "Netherlands", "Austria", "Spain", "Seychelles", "Madagascar"],
       types: {
         accommodation: { items: "Rooms", item: "Room", unit: "night", units: "nights", perUnit: "per night", people: "Guests", person: "guest", adults: "Guests", adult: "guest", child: "child", children: "Children", checkIn: "Check-in", checkOut: "Check-out", date: "Date", minUnits: "Minimum stay: {n} nights.", tooMany: "This room sleeps up to {n} guests.", seeAll: "See all {n}", amenities: "In the room", alsoLike: "You may also like", view: "See the room", sample: "{n} nights in the {item}", step1: "Your stay", messageHint: "Arrival time, celebrations, dietary needs…" },
@@ -350,6 +371,7 @@ window.SITE = {
       demoTitle: "Ceci est une démo", demoWa: "Sur le vrai site, ceci ouvre WhatsApp avec ce message prêt à envoyer :", demoTel: "Sur le vrai site, ceci appelle l'entreprise :",
       demoMail: "Sur le vrai site, ceci ouvre un e-mail vers l'entreprise.", demoForm: "Sur le vrai site, l'entreprise reçoit ceci :",
       demoStudio: "Je veux un site comme celui-ci", demoStudioMsg: "Bonjour WebLuxe, j'ai vu la démo {site} et je voudrais un site comme celui-ci.",
+      reviewOnGoogle: "Laissez un avis Google", seeOnGoogle: "Voir sur Google Maps", nfTitle: "Cette page est partie se baigner", nfText: "L'adresse contient peut-être une faute, ou la page a changé de place. Tout est toujours sur la page d'accueil.", nfHome: "Aller à l'accueil",
       // ----- ce modèle -----
       navGallery: "Galerie", navReviews: "Avis", navContact: "Contact", breadcrumb: "Vous êtes ici", currency: "Changer de devise",
       bookNow: "Réserver", bookDirect: "Réserver en direct", from: "Dès", checkAvailability: "Voir les disponibilités", readAll: "Lire tous les avis", ratingOf: "{n} étoiles sur 5",
@@ -368,6 +390,9 @@ window.SITE = {
       waIntro: "Bonjour {name}, je voudrais réserver :", waFollow: "Bonjour, au sujet de ma demande {ref} :", bookSubject: "Nouvelle demande de réservation depuis le site {name}",
       cursorView: "Voir", cursorDrag: "Glisser", onSites: "Sur les sites de réservation", bookedHere: "Réservé ici", youKeep: "Vous gardez", commissionNote: "Les sites de réservation ajoutent environ {pct} % de frais et de commission.",
       demoTypeLabel: "Voir ce modèle pour", demoType_accommodation: "une maison d'hôtes ou villa", demoType_tour: "excursions en mer", demoType_rental: "location de voitures",
+      addDate: "Choisir", nNights: "{n} nuits", payNow: "Payer {amount} maintenant",
+      calTitle: "Choisissez vos dates", calPickIn: "Touchez votre jour d'arrivée", calPickOut: "Touchez maintenant votre jour de départ (min. {n})", calFree: "Libre", calBooked: "Réservé",
+      calClear: "Effacer", calDone: "Valider", calMin: "À partir de ce jour, le minimum est de {n}.", calClash: "Certaines de ces dates sont déjà réservées. Choisissez d'autres dates.", calPriceNote: "Prix par nuit en {cur}",
       countries: ["Maurice", "France", "La Réunion", "Royaume-Uni", "Allemagne", "Italie", "Suisse", "Belgique", "Afrique du Sud", "Inde", "Émirats arabes unis", "États-Unis", "Australie", "Chine", "Pays-Bas", "Autriche", "Espagne", "Seychelles", "Madagascar"],
       types: {
         accommodation: { items: "Chambres", item: "Chambre", unit: "nuit", units: "nuits", perUnit: "par nuit", people: "Personnes", person: "personne", adults: "Personnes", adult: "personne", child: "enfant", children: "Enfants", checkIn: "Arrivée", checkOut: "Départ", date: "Date", minUnits: "Séjour minimum : {n} nuits.", tooMany: "Cette chambre accueille jusqu'à {n} personnes.", seeAll: "Voir les {n}", amenities: "Dans la chambre", alsoLike: "Vous aimerez aussi", view: "Voir la chambre", sample: "{n} nuits en {item}", step1: "Votre séjour", messageHint: "Heure d'arrivée, anniversaire, régime alimentaire…" },

@@ -272,6 +272,13 @@ html.menu-open .hd.hd-over .logo-mark { background: var(--primary); color: var(-
 /* dark mode: the brand's dark colour would vanish on a dark page, so main buttons use the accent */
 :root[data-theme="dark"] .btn-primary, :root[data-theme="dark"] .map-btn { background: var(--accent); color: var(--on-accent); }
 
+/* not found (404.html) */
+.nf { min-height: 70vh; display: grid; align-items: center; padding-top: calc(var(--sec) + var(--s4)); }
+.nf-in { display: grid; gap: var(--s3); justify-items: start; }
+.g-review .i { width: 18px; height: 18px; }
+/* longer labels (Italian, French) may wrap inside these buttons instead of pushing the page wider */
+.g-review { white-space: normal; text-align: center; line-height: 1.25; padding-block: 10px; }
+
 /* ---------- page changes (the look of the cover is set per tier) ---------- */
 html.tx-wait body { background: var(--primary); }
 .tx { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); transform: translateY(101%); visibility: hidden; pointer-events: none; }
@@ -299,6 +306,60 @@ html.intro-on .hero-rise, html.intro-on .phead-in > * { animation-play-state: pa
 /* nothing may ever push the page sideways (moving bands, tilted cards, entrance animations) */
 html { overflow-x: clip; }
 .ticker { contain: paint; }
+
+/* ---------- availability calendar (shared, added with @uses cal) ---------- */
+.cal { --cal-sel: var(--primary); --on-cal-sel: var(--on-primary); display: grid; gap: var(--s2); min-width: 0; }
+:root[data-theme="dark"] .cal { --cal-sel: var(--accent); --on-cal-sel: var(--on-accent); }
+.cal-top { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: var(--s1); }
+.cal-nav { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); transition: background-color .2s; }
+.cal-nav:hover:not([disabled]) { background: var(--bg-2); }
+.cal-nav[disabled] { opacity: .3; cursor: default; }
+.cal-msg { text-align: center; font-weight: 600; font-size: .95rem; line-height: 1.3; min-height: 2.6em; display: grid; place-items: center; }
+.cal-msg.is-err { color: var(--err); }
+:root[data-theme="dark"] .cal-msg.is-err { color: #fda4a4; }
+.cal-ms { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.cal-t { text-align: center; font: 600 1.05rem/1.2 var(--font-head); text-transform: capitalize; margin-bottom: var(--s1); }
+.cal-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px 0; }
+.cal-w { text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); padding-bottom: 6px; }
+.cal-d { position: relative; min-height: 44px; display: grid; place-content: center; justify-items: center; gap: 1px; border-radius: 10px; font-weight: 600; font-size: .92rem; font-variant-numeric: tabular-nums; line-height: 1.1; transition: background-color .15s, color .15s; }
+.cal-d small { font-size: .62rem; font-weight: 500; color: var(--text-2); letter-spacing: -.01em; }
+.cal-d:hover:not([disabled]) { background: color-mix(in srgb, var(--cal-sel) 12%, transparent); }
+.cal-d[disabled] { cursor: default; }
+.cal-d.is-past { color: color-mix(in srgb, var(--text) 28%, transparent); }
+.cal-d.is-taken:not(.is-past) { color: color-mix(in srgb, var(--text) 40%, transparent); background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--text) 7%, transparent) 5px 6px); }
+.cal-d.is-taken span { text-decoration: line-through; }
+.cal-d.is-today:not(.is-a):not(.is-b) { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent); }
+.cal-d.is-in { background: color-mix(in srgb, var(--cal-sel) 14%, transparent); border-radius: 0; }
+.cal-d.is-a, .cal-d.is-b { background: var(--cal-sel); color: var(--on-cal-sel); }
+.cal-d.is-a small, .cal-d.is-b small, .cal-d.is-taken.is-b span { color: inherit; opacity: .85; }
+.cal-d.is-a { border-radius: 10px 0 0 10px; } .cal-d.is-b { border-radius: 0 10px 10px 0; }
+.cal-d.is-a:not(:has(~ .is-b)) { border-radius: 10px; }
+.cal-d.is-short:not([disabled]) { color: color-mix(in srgb, var(--text) 45%, transparent); }
+.cal-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--s3); font-size: .84rem; color: var(--text-2); }
+.cal-foot span { display: inline-flex; align-items: center; gap: 8px; }
+.cal-foot i { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--line); }
+.cal-foot .k-taken { background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--text) 25%, transparent) 3px 4px); }
+.cal-clear { margin-left: auto; min-height: 36px; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; color: var(--text); }
+@media (max-width: 759px) { .cal-more { display: none; } }
+@media (max-width: 380px) { .cal-d { min-height: 40px; font-size: .86rem; } .cal-d small { font-size: .56rem; } }
+/* the pop-up version */
+.pick { width: min(96vw, 760px); max-height: 92dvh; border: 0; padding: 0; border-radius: var(--r-lg); background: var(--card); color: var(--text); box-shadow: var(--shadow-lg); overflow: auto; }
+.pick::backdrop { background: rgb(6 10 18 / .6); backdrop-filter: blur(4px); }
+.pick[open] { animation: dlg-in .35s var(--ease-out); }
+.pick-in { display: grid; gap: var(--s2); padding: var(--s2) var(--s3) var(--s3); }
+.pick-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.pick-head h2 { font: 600 1.3rem/1.2 var(--font-head); }
+.pick-head .dlg-x { position: static; }
+.pick-foot { display: flex; justify-content: flex-end; }
+.pick-foot .btn[disabled] { opacity: .45; }
+@media (max-width: 759px) {
+  .pick { width: 100vw; max-width: none; margin: auto 0 0; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .pick[open] { animation: sheet-up .4s var(--ease-out); }
+  .pick-in { padding-bottom: calc(var(--s3) + env(safe-area-inset-bottom)); }
+  .pick-foot .btn { width: 100%; }
+}
+@keyframes sheet-up { from { transform: translateY(100%); } }
+
 
 /* ==========================================================================
    HIGH TIER: "Bookings". Lagoon at dawn: sand paper, deep teal sea,
@@ -413,6 +474,9 @@ html:not(.intro-on) .hero-slide.on img { transform: scale(1); }
   -webkit-mask: radial-gradient(circle 11px at calc(100% - var(--stub)) 0, #0000 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 11px at calc(100% - var(--stub)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
   mask: radial-gradient(circle 11px at calc(100% - var(--stub)) 0, #0000 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 11px at calc(100% - var(--stub)) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat; }
 .ticket:not(:has(.sf:nth-of-type(3))) { --cols: 2; }
+/* dates as calendar buttons: still three columns (the guests field is the only label left) */
+.ticket.ticket:has(.sf-btn) { --cols: 3; }
+@media (max-width: 759px) { .ticket:has(.sf-btn) .sf:not(.sf-btn) { grid-column: 1 / -1; border-right: 0; border-bottom: 0; } }
 .sf { display: grid; gap: 2px; padding: 14px 18px; cursor: pointer; border-right: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); min-width: 0; }
 .sf span { font-size: .66rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: color-mix(in srgb, var(--ink) 62%, transparent); }
 .sf input, .sf select { border: 0; background: none; min-height: 32px; padding: 0; font: 400 1.25rem/1.2 var(--font-head); color: var(--ink); width: 100%; min-width: 0; appearance: none; }
@@ -694,6 +758,16 @@ html:not(.intro-on) .hero-slide.on img { transform: scale(1); }
 .lp-card .lc-price span, .lp-card .lc-price small { font-size: .82rem; color: color-mix(in srgb, var(--ink) 65%, transparent); }
 .qf-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .qf-row:has(> :only-child) { grid-template-columns: 1fr; }
+/* the calendars: in the hero ticket, the quick-book card and the booking form */
+.sf-btn { text-align: left; font: inherit; color: inherit; }
+.sf-btn b { display: block; min-height: 32px; padding-top: 3px; font: 400 1.25rem/1.2 var(--font-head); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qf-row .qcal { grid-column: 1 / -1; }
+.lp-card .cal { --text: var(--ink); --text-2: color-mix(in srgb, var(--ink) 65%, transparent); --line: color-mix(in srgb, var(--ink) 16%, transparent); --bg-2: color-mix(in srgb, var(--ink) 6%, transparent); --cal-sel: var(--primary); --on-cal-sel: #fff; }
+.lp-card .cal-d small { font-size: .58rem; }
+.row-2 > .bk-calf { grid-column: 1 / -1; }
+.bk-cal { padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.pay-box { display: grid; justify-items: center; gap: 8px; margin-top: var(--s2); }
+.pay-box p { font-size: .9rem; color: var(--text-2); max-width: 46ch; }
 .qe { display: grid; gap: 6px; font: .9rem/1.4 var(--mono); }
 .qe p { display: flex; justify-content: space-between; gap: var(--s2); color: color-mix(in srgb, var(--ink) 75%, transparent); }
 .qe .qe-total { padding-top: 10px; border-top: 1px dashed color-mix(in srgb, var(--ink) 30%, transparent); color: var(--ink); font-weight: 600; }
@@ -869,3 +943,26 @@ html.lenis, html.lenis body { height: auto; }
 html.lenis.lenis-smooth { scroll-behavior: auto !important; }
 html.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
 html.lenis.lenis-stopped { overflow: hidden; }
+
+/* ---------- fit: nothing floats over the page on phones ---------- */
+/* the reviews controls wrap instead of squeezing "Read all reviews" onto three lines */
+.rc-ctrl { flex-wrap: wrap; row-gap: var(--s1); }
+.rc-ctrl .link { white-space: nowrap; }
+@media (max-width: 559px) { .rc-ctrl .link { flex-basis: 100%; margin-left: 0; justify-content: center; min-height: 44px; } }
+/* WhatsApp sits in the bottom bar on phones; the floating button only shows while that bar is away */
+.bar-go { display: flex; align-items: center; gap: var(--s1); flex: none; }
+.bar-wa { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--wa); color: #fff; }
+.bar-wa .i { width: 26px; height: 26px; }
+.book-bar p { min-width: 0; }
+@media (max-width: 959px) {
+  html.has-book-bar .fab, body[data-page="book"] .fab { display: none; }
+  html.has-book-bar:not(.past-hero) body[data-page="home"] .fab, html.has-book-bar.in-day .fab { display: grid; }
+}
+.book-bar b, .book-bar small { white-space: nowrap; }
+@media (max-width: 439px) { .book-bar small { display: none; } .book-bar .btn-lg { padding-inline: 20px; } }
+
+/* score out of 10 */
+.seal b i { font-style: normal; font-size: .45em; opacity: .7; margin-left: 2px; }
+
+/* four photos in the strip: one row of four on computers, not three plus one alone */
+@media (min-width: 760px) { .polas:has(> li:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s4) var(--s3); } }

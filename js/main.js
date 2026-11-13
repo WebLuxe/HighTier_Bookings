@@ -6,7 +6,18 @@
 (() => {
 'use strict';
 
-const C = window.SITE || {};
+/* Changes saved from the admin panel live in data/site.js (window.SITE_EDITS) and are laid over config.js.
+   While the owner previews unsaved changes (?preview), the admin's draft is laid over too. */
+const mergeIn = (a, b) => { if (b === undefined) return a; if (b === null || typeof b !== 'object' || Array.isArray(b)) return b; const o = { ...(a && typeof a === 'object' && !Array.isArray(a) ? a : {}) }; for (const k of Object.keys(b)) o[k] = mergeIn(o[k], b[k]); return o; };
+const C = (() => {
+  let c = mergeIn(window.SITE || {}, window.SITE_EDITS || {});
+  try {
+    const key = 'wl-preview:' + ((c.admin && c.admin.repo) || c.name);
+    if (/[?&]preview\b/.test(location.search)) sessionStorage.setItem('wl-preview-on', '1');
+    if (sessionStorage.getItem('wl-preview-on') === '1') { const d = JSON.parse(localStorage.getItem(key) || 'null'); if (d) c = mergeIn(c, d); }
+  } catch { /* private mode */ }
+  return (window.SITE = c);
+})();
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const enc = encodeURIComponent;
@@ -22,6 +33,10 @@ let lang = (() => {
   return pick || langs[0];
 })();
 let T = {};
+/** Dates and numbers in the visitor's language: it-IT, fr-FR, en-GB... */
+const LOCALE = () => ({ fr: 'fr-FR', it: 'it-IT', de: 'de-DE', es: 'es-ES' }[lang] || 'en-GB');
+/** 8.4 in English, 8,4 in Italian or French. */
+const decimal = (n) => Number(n).toLocaleString(LOCALE(), { maximumFractionDigits: 1 });
 
 /* ---------- text helpers ---------- */
 /** A config value can be plain text or { en: '...', fr: '...' }. */
@@ -206,7 +221,9 @@ const telHref = (p) => 'tel:' + (String(p).trim().startsWith('+') ? '+' : '') + 
 const waHref = (text) => (digits(K().whatsapp) ? `https://wa.me/${digits(K().whatsapp)}${text ? '?text=' + enc(text) : ''}` : '');
 const mailHref = (subject = '', body = '') => (K().email ? `mailto:${K().email}${subject || body ? '?' + [subject && 'subject=' + enc(subject), body && 'body=' + enc(body)].filter(Boolean).join('&') : ''}` : '');
 const addressLines = () => [K().street, [K().city, K().region].filter(Boolean).join(', '), K().country].filter(has).map(tx);
-const mapsLink = () => (K().mapsLink || `https://www.google.com/maps/search/?api=1&query=${enc(addressLines().join(', ') || C.name)}`);
+const mapsLink = () => (K().mapsLink || K().googleBusiness || `https://www.google.com/maps/search/?api=1&query=${enc(addressLines().join(', ') || C.name)}`);
+/** "Review us on Google": shown when contact.googleReview is set (the write-a-review link from the Google Business profile). */
+const gReview = (cls = 'btn btn-line') => (has(K().googleReview) ? `<a class="${cls} g-review" href="${esc(K().googleReview)}" target="_blank" rel="noopener">${icon('google')}${esc(ui('reviewOnGoogle'))}</a>` : '');
 
 /* ---------- header, footer, demo strip, WhatsApp button ---------- */
 function logo(cls = '') {
@@ -277,7 +294,7 @@ function fab() {
 /* ---------- SEO: title, description, Open Graph and schema.org data from config ---------- */
 function setMeta(page) {
   const s = C.seo || {};
-  const pageTitle = T.pageTitle ? T.pageTitle(page) : '';
+  const pageTitle = page === '404' ? ui('nfTitle') : T.pageTitle ? T.pageTitle(page) : '';
   const title = pageTitle ? `${pageTitle} | ${C.name}` : (tx(s.title) || C.name);
   const desc = (T.pageDescription && T.pageDescription(page)) || tx(s.description) || tx(C.tagline);
   document.title = title;
@@ -291,12 +308,21 @@ function setMeta(page) {
   meta('property', 'og:title', title);
   meta('property', 'og:description', desc);
   meta('property', 'og:site_name', C.name);
-  meta('property', 'og:locale', lang === 'fr' ? 'fr_FR' : 'en_GB');
+  meta('property', 'og:locale', LOCALE().replace('-', '_'));
   if (s.image) meta('property', 'og:image', sized(imgOf(s.image).src, 1200));
   meta('name', 'theme-color', (C.colors || {}).primary);
   if (s.favicon && !$('link[rel="icon"][data-wl]')) document.head.append(Object.assign(document.createElement('link'), { rel: 'icon', href: s.favicon }));
   if (s.favicon) { const f = $('link[rel="icon"]'); if (f) f.href = s.favicon; }
-  if (C.demo && C.demo.enabled && !$('meta[name="robots"]')) meta('name', 'robots', 'noindex');
+  if ((C.demo && C.demo.enabled) || page === '404') meta('name', 'robots', 'noindex');
+  // the address Google should list for this page, and the same page in the other languages
+  if (s.siteUrl && page !== '404') {
+    const link = (rel, href, hl) => { let l = document.head.querySelector(`link[rel="${rel}"]${hl ? `[hreflang="${hl}"]` : ':not([hreflang])'}`); if (!l) { l = document.createElement('link'); l.rel = rel; if (hl) l.hreflang = hl; document.head.append(l); } l.href = href; };
+    const u = new URL((location.pathname.split('/').pop() || '').replace(/^index\.html$/, ''), String(s.siteUrl).replace(/\/?$/, '/'));
+    const q = new URLSearchParams(location.search); q.delete('lang'); q.delete('demo'); u.search = q.toString();
+    const inLang = (l) => { const x = new URL(u.href); if (l !== langs[0]) x.searchParams.set('lang', l); return x.href; };
+    link('canonical', inLang(lang));
+    if (langs.length > 1) { langs.forEach((l) => link('alternate', inLang(l), l)); link('alternate', inLang(langs[0]), 'x-default'); }
+  }
   document.documentElement.lang = lang;
 }
 function businessSchema() {
@@ -312,7 +338,8 @@ function businessSchema() {
     address: addressLines().length ? { '@type': 'PostalAddress', streetAddress: tx(k.street) || undefined, addressLocality: tx(k.city) || undefined, addressRegion: tx(k.region) || undefined, postalCode: k.postalCode || undefined, addressCountry: k.countryCode || tx(k.country) || undefined } : undefined,
     geo: k.lat ? { '@type': 'GeoCoordinates', latitude: k.lat, longitude: k.lng } : undefined,
     openingHoursSpecification: spec && spec.length ? spec : undefined,
-    sameAs: SOCIAL.map((x) => s[x]).filter(has),
+    sameAs: [...SOCIAL.map((x) => s[x]), k.googleBusiness].filter(has),
+    hasMap: k.googleBusiness || undefined,
     priceRange: (C.seo && C.seo.priceRange) || undefined,
   };
   return o;
@@ -356,12 +383,23 @@ function formSummary(form) {
   }
   return lines.join('\n');
 }
-async function sendForm(form, { subject = '', summary = '' } = {}) {
+/** The form's main fields, for the inbox. */
+/** The deposit payment link from config (payments.link), with {amount}, {currency} and {ref} filled in. */
+const payHref = (amount, currency, ref) => String((C.payments || {}).link || '').replace(/\{amount\}/g, amount).replace(/\{currency\}/g, currency).replace(/\{ref\}/g, enc(ref));
+const formFields = (form) => Object.fromEntries(['name', 'email', 'phone', 'country', 'message'].map((k) => [k, form.elements[k] ? form.elements[k].value : '']));
+/** Every request is also written to the owner's inbox (a Google Sheet, see admin/inbox.gs) when inbox.url is set. */
+function inboxSend(record) {
+  const url = (C.inbox || {}).url;
+  if (!url || demoOn()) return;
+  try { fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ site: C.name, lang, page: location.pathname.split('/').pop() || 'index.html', ...record }) }); } catch { /* never block the visitor */ }
+}
+async function sendForm(form, { subject = '', summary = '', record = null } = {}) {
   if (!form.reportValidity()) return false;
   const status = $('[data-status]', form), btn = $('[type="submit"]', form);
   const body = summary || formSummary(form);
   const show = (cls, msg) => { if (status) { status.className = 'form-status ' + cls; status.textContent = msg; status.hidden = false; } };
   if (demoOn()) { demoShow('form', body); show('ok', ui('formDemoDone')); return true; }
+  inboxSend(record || { type: 'message', ...formFields(form) });
   const endpoint = (C.form || {}).endpoint;
   if (endpoint) {
     btn && (btn.disabled = true); show('wait', ui('formSending'));
@@ -574,10 +612,15 @@ function introPlay(page) {
   requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('run')));
 }
 
+/** The page shown for an address that does not exist (404.html). */
+function notFound() {
+  return `<section class="sec nf"><div class="wrap nf-in"><p class="eyebrow">404</p><h1 class="h1">${esc(ui('nfTitle'))}</h1><p class="lead">${esc(ui('nfText'))}</p>
+    <p class="btns"><a class="btn btn-primary btn-lg" href="./">${esc(ui('nfHome'))}</a>${waHref() ? `<a class="btn btn-wa btn-lg" href="${waHref(tx(K().whatsappMessage))}" target="_blank" rel="noopener">${icon('wa')}WhatsApp</a>` : ''}</p></div></section>`;
+}
 function render() {
   const page = document.body.dataset.page || 'home';
   const app = $('#app');
-  const main = (T.pages[page] || T.pages.home)();
+  const main = (T.pages[page] || (page === '404' ? notFound : T.pages.home))();
   app.innerHTML = `${header(page)}<main id="main" tabindex="-1">${main}</main>${footer()}${fab()}${T.after ? T.after(page) : ''}`;
   document.documentElement.classList.remove('menu-open');
   setMeta(page); setSchema(); wireCore();
@@ -591,12 +634,104 @@ function boot(tier) {
   txArrive(); txWire(); introPlay(document.body.dataset.page || 'home');
   if (location.hash) { const t = document.getElementById(location.hash.slice(1)); t && setTimeout(() => t.scrollIntoView(), 60); }
 }
+/* ---------- availability calendar (tiers add it with  @uses cal  at the top of src/tier.js) ----------
+   Shows months of days. Booked nights are crossed out. A guest taps a check-in day, then a check-out
+   day; the calendar refuses ranges that are too short or that run through a booked night.
+   booked: [["2026-12-20", "2027-01-03"], ...]  = check-in day to check-out day (that morning is free). */
+const CD = {
+  iso: (d) => d.toISOString().slice(0, 10),
+  add: (s, n) => CD.iso(new Date(new Date(s + 'T00:00:00Z').getTime() + n * 864e5)),
+  today: () => CD.iso(new Date(Date.now() - new Date().getTimezoneOffset() * 6e4)),
+  nights: (a, b) => (a && b ? Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 864e5) : 0),
+  month: (ym, k) => { const [y, m] = ym.split('-').map(Number); return new Date(Date.UTC(y, m - 1 + k, 1)).toISOString().slice(0, 7); },
+  fmt: (s, o) => new Intl.DateTimeFormat(LOCALE(), { timeZone: 'UTC', ...o }).format(new Date(s.length === 7 ? s + '-01T00:00:00Z' : s + 'T00:00:00Z')),
+};
+CD.nice = (s) => (s ? CD.fmt(s, { weekday: 'short', day: 'numeric', month: 'short' }) : '');
+/** True when the night that starts on day d is already booked. */
+const nightTaken = (booked, d) => (booked || []).some((r) => r && d >= r[0] && d < r[1]);
+/** First free night on or after day d (looks a year ahead). */
+const nextFree = (booked, d) => { for (let k = 0; k < 366; k++) { const x = CD.add(d, k); if (!nightTaken(booked, x)) return x; } return ''; };
+
+/**
+ * calendar(root, { months, booked: () => [], minFor: (d) => n, price: (d) => 'short text', in, out, onChange(in, out) })
+ * Returns { set(in, out), get(), redraw() }.
+ */
+function calendar(root, o) {
+  let a = o.in || '', b = o.out || '', msg = '';
+  let view = (a || CD.today()).slice(0, 7);
+  const t0 = CD.today();
+  const booked = () => (o.booked ? o.booked() : []);
+  const free = (d) => !nightTaken(booked(), d);
+  const rangeFree = (x, y) => { for (let d = x; d < y; d = CD.add(d, 1)) if (!free(d)) return false; return true; };
+  const minFor = (d) => (o.minFor ? o.minFor(d) : 1);
+  const week = Array.from({ length: 7 }, (_, i) => CD.fmt(CD.add('2024-01-01', i), { weekday: 'short' }).replace('.', '').slice(0, 2));
+  const hint = () => (a && b ? `${CD.nice(a)} → ${CD.nice(b)} · ${ui('nNights', { n: CD.nights(a, b) })}` : a ? ui('calPickOut', { n: minFor(a) }) : ui('calPickIn'));
+  const month = (ym) => {
+    const first = new Date(ym + '-01T00:00:00Z'), lead = (first.getUTCDay() + 6) % 7;
+    const days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+    let h = '<span class="cal-x" aria-hidden="true"></span>'.repeat(lead);
+    for (let n = 1; n <= days; n++) {
+      const d = `${ym}-${String(n).padStart(2, '0')}`, past = d < t0, taken = free(d) === false;
+      const choosingOut = a && !b && d > a;
+      const ok = !past && (choosingOut ? rangeFree(a, d) || !taken : !taken); // past a booked night, a free day starts a new stay
+      const cls = ['cal-d', past && 'is-past', taken && 'is-taken', d === t0 && 'is-today', d === a && 'is-a', d === b && 'is-b', a && b && d > a && d < b && 'is-in',
+        choosingOut && ok && CD.nights(a, d) < minFor(a) && 'is-short'].filter(Boolean).join(' ');
+      const p = o.price && !past && !taken ? o.price(d) : '';
+      h += `<button type="button" class="${cls}" data-d="${d}"${ok ? '' : ' disabled'} aria-pressed="${d === a || d === b}" aria-label="${esc(CD.nice(d))}${taken ? ', ' + esc(ui('calBooked')) : ''}"><span>${n}</span>${p ? `<small>${esc(p)}</small>` : ''}</button>`;
+    }
+    return h;
+  };
+  const draw = () => {
+    const n = o.months || 2;
+    root.innerHTML = `<div class="cal-top">
+      <button type="button" class="cal-nav" data-cal="-1" aria-label="${esc(ui('prev'))}"${view <= t0.slice(0, 7) ? ' disabled' : ''}>${icon('chevL')}</button>
+      <p class="cal-msg${msg ? ' is-err' : ''}" aria-live="polite">${esc(msg || hint())}</p>
+      <button type="button" class="cal-nav" data-cal="1" aria-label="${esc(ui('next'))}">${icon('chevR')}</button></div>
+      <div class="cal-ms">${Array.from({ length: n }, (_, k) => { const ym = CD.month(view, k); return `<div class="cal-m${k ? ' cal-more' : ''}"><p class="cal-t">${esc(CD.fmt(ym, { month: 'long', year: 'numeric' }))}</p><div class="cal-g">${week.map((w) => `<span class="cal-w">${esc(w)}</span>`).join('')}${month(ym)}</div></div>`; }).join('')}</div>
+      <div class="cal-foot"><span><i class="k-free"></i>${esc(ui('calFree'))}</span><span><i class="k-taken"></i>${esc(ui('calBooked'))}</span>${o.priceNote ? `<span class="cal-note">${esc(o.priceNote)}</span>` : ''}${a ? `<button type="button" class="cal-clear" data-cal-clear>${esc(ui('calClear'))}</button>` : ''}</div>`;
+  };
+  root.addEventListener('click', (e) => {
+    const nav = e.target.closest('[data-cal]');
+    if (nav) { view = CD.month(view, +nav.dataset.cal); draw(); return; }
+    if (e.target.closest('[data-cal-clear]')) { a = b = msg = ''; draw(); o.onChange && o.onChange('', ''); return; }
+    const btn = e.target.closest('[data-d]');
+    if (!btn || btn.disabled) return;
+    const d = btn.dataset.d;
+    msg = '';
+    if (!a || b || d <= a || !rangeFree(a, d)) { a = d; b = ''; }
+    else if (CD.nights(a, d) < minFor(a)) msg = ui('calMin', { n: minFor(a) });
+    else b = d;
+    draw();
+    o.onChange && o.onChange(a, b);
+  });
+  draw();
+  return {
+    set(x, y) { a = x || ''; b = y || ''; msg = ''; if (a) view = a.slice(0, 7); draw(); },
+    get: () => ({ in: a, out: b }),
+    redraw() { if (a && b && !rangeFree(a, b)) { b = ''; msg = ui('calClash'); } draw(); },
+  };
+}
+
+/** The same calendar in a pop-up (a sheet from the bottom on phones). Calls done(in, out) when the guest confirms. */
+function pickDates(o, done) {
+  let d = $('#wl-pick');
+  if (!d) { d = document.createElement('dialog'); d.id = 'wl-pick'; d.className = 'pick'; document.body.append(d); }
+  d.innerHTML = `<div class="pick-in"><div class="pick-head"><h2>${esc(ui('calTitle'))}</h2><button type="button" class="dlg-x" data-pick-x aria-label="${esc(ui('close'))}">${icon('close')}</button></div><div class="cal" data-pick-cal></div><div class="pick-foot"><button type="button" class="btn btn-accent btn-lg" data-pick-ok>${esc(ui('calDone'))}</button></div></div>`;
+  const ok = $('[data-pick-ok]', d);
+  const c = calendar($('[data-pick-cal]', d), { ...o, months: innerWidth < 760 ? 1 : 2, onChange: (x, y) => { ok.disabled = !(x && y); } });
+  ok.disabled = !(o.in && o.out);
+  d.onclick = (e) => { if (e.target === d || e.target.closest('[data-pick-x]')) d.close(); };
+  ok.onclick = () => { const v = c.get(); d.close(); done(v.in, v.out); };
+  d.showModal();
+}
+
 
 /* ==========================================================================
    HIGH TIER: "Bookings". Direct bookings for guesthouses and villas, tours
    and boat trips, or car rental. config.type picks the wording and the maths:
    "accommodation" (per night), "tour" (per person), "rental" (per day).
    ========================================================================== */
+/* @uses cal */
 const TYPE = ['accommodation', 'tour', 'rental'].includes(C.type) ? C.type : 'accommodation';
 const RANGE = TYPE !== 'tour';               // two dates (in / out) or a single date
 const W = (k, v) => String(((L().types || {})[TYPE] || {})[k] ?? (((C.text.en.types || {})[TYPE] || {})[k] ?? '')).replace(/\{(\w+)\}/g, (_, x) => (v && v[x] != null ? v[x] : ''));
@@ -609,19 +744,21 @@ const B = () => C.booking || {};
 
 /* ---------- money: prices are written in rupees; visitors can view them in euros or dollars ---------- */
 const CUR = () => C.currency || {};
-const curList = () => ['MUR', ...Object.keys(CUR().rates || {})];
-let cur = (() => { const c = store.get('wl-cur'); return curList().includes(c) ? c : (CUR().default || 'MUR'); })();
+/** Prices in config are written in the base currency (currency.base, rupees if not set); rates turn them into the others. */
+const BASE = () => CUR().base || 'MUR';
+const curList = () => [BASE(), ...Object.keys(CUR().rates || {}).filter((c) => c !== BASE())];
+let cur = (() => { const c = store.get('wl-cur'); return curList().includes(c) ? c : (CUR().default || BASE()); })();
 const SYM = { MUR: 'Rs ', EUR: '€', USD: '$', GBP: '£', ZAR: 'R ', INR: '₹' };
-const fmtIn = (mur, c) => { const v = c === 'MUR' ? mur : mur * (CUR().rates[c] || 0); return (SYM[c] || c + ' ') + Math.round(v).toLocaleString('en-US'); };
+const fmtIn = (v0, c) => { const v = c === BASE() ? v0 : v0 * ((CUR().rates || {})[c] || 0); return (SYM[c] || c + ' ') + Math.round(v).toLocaleString(LOCALE()); };
 const money = (mur) => fmtIn(mur, cur);
-const moneyAlt = (mur) => { const alt = CUR().secondary; return cur === 'MUR' && alt && CUR().rates && CUR().rates[alt] ? `≈ ${fmtIn(mur, alt)}` : ''; };
+const moneyAlt = (v) => { const alt = CUR().secondary; return cur === BASE() && alt && alt !== BASE() && CUR().rates && CUR().rates[alt] ? `≈ ${fmtIn(v, alt)}` : ''; };
 
 /* ---------- dates ---------- */
 const iso = (d) => d.toISOString().slice(0, 10);
 const day = (s) => new Date(s + 'T00:00:00Z');
 const addDays = (s, n) => iso(new Date(day(s).getTime() + n * 864e5));
 const today = () => iso(new Date(Date.now() - new Date().getTimezoneOffset() * 6e4));
-const nice = (s) => (s ? new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(day(s)) : '');
+const nice = (s) => (s ? new Intl.DateTimeFormat(LOCALE(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(day(s)) : '');
 const between = (a, b) => (a && b ? Math.round((day(b) - day(a)) / 864e5) : 0);
 
 /* ---------- the price maths, used by the listing page, the booking page and the sticky bar ---------- */
@@ -666,6 +803,20 @@ function estimate(item, st) {
   return out;
 }
 const fromPrice = (item) => Math.min(item.price, ...(item.seasons || []).map((s) => s.price));
+const minOf = (it) => (it && it.minUnits) || 1;
+const curLabel = () => (cur === 'MUR' ? 'Rs' : (SYM[cur] || cur).trim());
+/** A short price for a calendar day: "15.5k", "€85". */
+const shortMoney = (v0) => { const v = cur === BASE() ? v0 : v0 * ((CUR().rates || {})[cur] || 0); const n = v >= 1000 ? decimal(Math.round(v / 100) / 10) + 'k' : String(Math.round(v)); return (cur === 'MUR' ? '' : (SYM[cur] || '').trim()) + n; };
+/** The first stretch of free nights long enough for this listing, starting the search at day `from`. */
+function freeRange(it, from) {
+  for (let k = 0; k < 150; k++) {
+    const a = addDays(from, k), n = Math.max(minOf(it), B().defaultUnits || 4);
+    let ok = true;
+    for (let j = 0; j < n && ok; j++) if (nightTaken(it.booked, addDays(a, j))) ok = false;
+    if (ok) return [a, addDays(a, n)];
+  }
+  return ['', ''];
+}
 
 /* ---------- pages ---------- */
 const PG = { home: './', listings: 'listings.html', gallery: 'gallery.html', reviews: 'reviews.html', contact: 'contact.html', book: 'book.html' };
@@ -673,7 +824,7 @@ const bookHref = (id, extra = '') => `${PG.book}?${id ? 'id=' + enc(id) : ''}${e
 const itemHref = (id) => `listing.html?id=${enc(id)}`;
 
 const TIER = {
-  get overlayHeader() { return document.body.dataset.page !== 'book'; },
+  get overlayHeader() { return !['book', '404'].includes(document.body.dataset.page); },
   homeHref: './',
   transitions: true,
   txIn: 700, txOut: 1100,
@@ -722,14 +873,14 @@ const TIER = {
     const it = page === 'listing' ? byId(Q.get('id')) : null;
     const p = it ? fromPrice(it) : Math.min(...LIST().map(fromPrice));
     if (!isFinite(p)) return '';
-    return `<div class="book-bar"><p><span>${esc(ui('from'))}</span><b>${esc(money(p))}</b><small>${esc(W('perUnit'))}</small></p><a class="btn btn-accent btn-lg" href="${bookHref(it ? it.id : '')}">${esc(ui('bookNow'))}</a></div>`;
+    return `<div class="book-bar"><p><span>${esc(ui('from'))}</span><b>${esc(money(p))}</b><small>${esc(W('perUnit'))}</small></p><div class="bar-go">${waHref() ? `<a class="bar-wa" href="${waHref(tx(K().whatsappMessage))}" target="_blank" rel="noopener" aria-label="${esc(ui('whatsappUs'))}">${icon('wa')}</a>` : ''}<a class="btn btn-accent btn-lg" href="${bookHref(it ? it.id : '')}">${esc(ui('bookNow'))}</a></div></div>`;
   },
   schema(base) {
     const types = { accommodation: 'LodgingBusiness', tour: 'TravelAgency', rental: 'AutoRental' };
-    const o = { ...base, '@type': (C.seo && C.seo.schemaType) || types[TYPE], currenciesAccepted: 'MUR' };
+    const o = { ...base, '@type': (C.seo && C.seo.schemaType) || types[TYPE], currenciesAccepted: BASE() };
     const r = (sec('reviews') || {}).summary;
-    if (r && r.rating) o.aggregateRating = { '@type': 'AggregateRating', ratingValue: r.rating, reviewCount: r.count, bestRating: 5 };
-    const offer = (it) => ({ '@type': 'Offer', price: fromPrice(it), priceCurrency: 'MUR', url: new URL(itemHref(it.id), location.href).href });
+    if (r && r.rating && r.count) o.aggregateRating = { '@type': 'AggregateRating', ratingValue: r.rating, reviewCount: r.count, bestRating: r.best || 5 };
+    const offer = (it) => ({ '@type': 'Offer', price: fromPrice(it), priceCurrency: BASE(), url: new URL(itemHref(it.id), location.href).href });
     if (TYPE === 'tour') {
       return [o, ...LIST().map((it) => ({ '@context': 'https://schema.org', '@type': 'TouristTrip', name: tx(it.name), description: tx(it.short), image: (it.images || []).slice(0, 3).map((x) => sized(imgOf(x).src, 1200)), provider: { '@type': 'TravelAgency', name: C.name }, offers: offer(it) }))];
     }
@@ -796,8 +947,9 @@ function peopleOptions(max = 10, sel = 2) { return Array.from({ length: max }, (
 function searchBar() {
   const t = today(), max = Math.max(2, ...LIST().map((x) => x.capacity || 2));
   return `<form class="search ticket hero-rise" data-search action="${PG.book}" method="get">
-    ${RANGE ? `<label class="sf"><span>${esc(W('checkIn'))}</span><input type="date" name="in" min="${t}" value="${addDays(t, 14)}" required></label>
-    <label class="sf"><span>${esc(W('checkOut'))}</span><input type="date" name="out" min="${addDays(t, 1)}" value="${addDays(t, 14 + (B().defaultUnits || 4))}" required></label>`
+    ${RANGE ? `<input type="hidden" name="in" value="${addDays(t, 14)}"><input type="hidden" name="out" value="${addDays(t, 14 + (B().defaultUnits || 4))}">
+    <button type="button" class="sf sf-btn" data-search-dates><span>${esc(W('checkIn'))}</span><b data-s-in></b></button>
+    <button type="button" class="sf sf-btn" data-search-dates><span>${esc(W('checkOut'))}</span><b data-s-out></b></button>`
     : `<label class="sf"><span>${esc(W('date'))}</span><input type="date" name="date" min="${t}" value="${addDays(t, 7)}" required></label>`}
     <label class="sf"><span>${esc(W('people'))}</span><select name="n">${peopleOptions(max, Math.min(2, max))}</select></label>
     <span class="perf" aria-hidden="true"></span><button class="btn btn-accent btn-lg" type="submit">${esc(ui('checkAvailability'))}${icon('arrow', 'i-go')}</button>
@@ -805,9 +957,12 @@ function searchBar() {
 }
 function wireSearch() {
   const f = $('[data-search]');
-  if (!f) return;
-  const a = $('[name="in"]', f), b = $('[name="out"]', f);
-  a && a.addEventListener('change', () => { b.min = addDays(a.value, 1); if (b.value <= a.value) b.value = addDays(a.value, B().defaultUnits || 4); });
+  if (!f || !RANGE) return;
+  const a = f.elements.in, b = f.elements.out;
+  const show = () => { $('[data-s-in]', f).textContent = a.value ? CD.nice(a.value) : ui('addDate'); $('[data-s-out]', f).textContent = b.value ? CD.nice(b.value) : ui('addDate'); };
+  const minAll = Math.min(...LIST().map(minOf));
+  $$('[data-search-dates]', f).forEach((btn) => btn.addEventListener('click', () => pickDates({ in: a.value, out: b.value, minFor: () => minAll }, (x, y) => { a.value = x; b.value = y; show(); })));
+  show();
 }
 function wireHero() {
   if (document.body.dataset.page === 'home') { const past = () => document.documentElement.classList.toggle('past-hero', scrollY > innerHeight * 0.75); past(); addEventListener('scroll', past, { passive: true }); }
@@ -975,7 +1130,7 @@ function ratingBadge() {
   const r = (sec('reviews') || {}).summary;
   if (!r || !r.rating) return '';
   const links = ((sec('reviews') || {}).links || []).filter((l) => l.url);
-  return `<div class="seal" data-reveal="zoom"><b>${esc(String(r.rating))}</b>${stars(5)}<span>${esc(ui('basedOn', { n: r.count }))}</span></div>${links.length ? `<p class="rlinks">${links.map((l) => `<a class="link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(ui('seeUsOn', { site: l.name }))}${icon('arrow')}</a>`).join('')}</p>` : ''}`;
+  return `<div class="seal" data-reveal="zoom"><b>${esc(decimal(r.rating))}${r.best && r.best !== 5 ? `<i>/${r.best}</i>` : ''}</b>${stars(5)}<span>${esc([r.count && ui('basedOn', { n: r.count }), tx(r.source)].filter(Boolean).join(' · '))}</span></div>${links.length || has(K().googleReview) ? `<p class="rlinks">${links.map((l) => `<a class="link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(ui('seeUsOn', { site: l.name }))}${icon('arrow')}</a>`).join('')}${has(K().googleReview) ? `<a class="link" href="${esc(K().googleReview)}" target="_blank" rel="noopener">${esc(ui('reviewOnGoogle'))}${icon('arrow')}</a>` : ''}</p>` : ''}`;
 }
 const TILT = [-1.6, 1.3, -0.8, 1.8, -1.2, 0.9];
 /** A guest review written as a postcard home: message on the left, stamp and postmark on the right. */
@@ -986,7 +1141,7 @@ const reviewCard = (r, i = 0) => {
   <div class="pc-side">
     <span class="pc-stamp" aria-hidden="true"><span>${esc(from.slice(0, 2).toUpperCase() || '★')}</span></span>
     <span class="pc-post" aria-hidden="true"><span>${esc(tx(r.date) || C.name)}</span></span>
-    <p class="pc-to">${stars(r.rating || 5)}<span>${esc(from)}</span>${has(r.source) ? `<span>${esc(r.source)}</span>` : ''}</p>
+    <p class="pc-to">${r.rating ? stars(r.rating) : ''}<span>${esc(from)}</span>${has(r.source) ? `<span>${esc(r.source)}</span>` : ''}</p>
   </div>
 </article>`;
 };
@@ -1024,8 +1179,8 @@ function insta() {
   if (!s || !imgs.length) return '';
   const T6 = [-3, 2.2, -1.4, 2.8, -2.2, 1.6];
   return `<section class="sec insta"><div class="wrap">
-    <div class="sec-row">${head(s.eyebrow, s.title)}${s.url ? `<a class="link" href="${esc(s.url)}" target="_blank" rel="noopener" data-reveal>${esc(s.handle || 'Instagram')}${icon('arrow')}</a>` : ''}</div>
-    <ul class="polas">${imgs.slice(0, 6).map((im, i) => `<li style="--tilt:${T6[i]}deg" data-reveal="zoom"><a href="${esc(s.url || '#')}" target="_blank" rel="noopener">${pic(im, { sizes: '(min-width: 900px) 30vw, 46vw', w: 500 })}${has(imgOf(im).caption) ? `<span>${esc(tx(imgOf(im).caption))}</span>` : ''}</a></li>`).join('')}</ul>
+    <div class="sec-row">${head(s.eyebrow, s.title, s.lead)}${s.url ? `<a class="link" href="${esc(s.url)}"${/^https?:/.test(s.url) ? ' target="_blank" rel="noopener"' : ''} data-reveal>${esc(tx(s.handle) || 'Instagram')}${icon('arrow')}</a>` : ''}</div>
+    <ul class="polas">${imgs.slice(0, 6).map((im, i) => { const href = imgOf(im).href || s.url || '#'; return `<li style="--tilt:${T6[i]}deg" data-reveal="zoom"><a href="${esc(href)}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''}>${pic(im, { sizes: '(min-width: 900px) 30vw, 46vw', w: 500 })}${has(imgOf(im).caption) ? `<span>${esc(tx(imgOf(im).caption))}</span>` : ''}</a></li>`; }).join('')}</ul>
   </div></section>`;
 }
 
@@ -1068,6 +1223,7 @@ function contactPage() {
       ${has(k.phone) ? card(telHref(k.phone), 'phone', ui('phone'), k.phone) : ''}
       ${has(k.email) ? card(mailHref(), 'mail', ui('email'), k.email) : ''}
       ${addr.length ? card(esc(mapsLink()), 'pin', ui('address'), addr.join(', '), 'target="_blank" rel="noopener"') : ''}
+      ${has(k.googleBusiness) ? card(esc(k.googleBusiness), 'google', 'Google', ui('seeOnGoogle'), 'target="_blank" rel="noopener"') : ''}
     </div>
     <div class="contact-row">
       ${has(k.responseTime) ? `<p class="resp" data-reveal>${icon('clock')}<span><b>${esc(ui('responseTime'))}</b>${esc(tx(k.responseTime))}</span></p>` : ''}
@@ -1118,14 +1274,14 @@ function listingPage() {
   ${others.length ? `<section class="sec sec-alt"><div class="wrap">${head('', W('alsoLike'))}${listingsGrid(others)}</div></section>` : ''}`;
 }
 function seasonDates(s) {
-  const f = (md) => new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(day('2001-' + md));
+  const f = (md) => new Intl.DateTimeFormat(LOCALE(), { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(day('2001-' + md));
   return `${f(s.from)} – ${f(s.to)}`;
 }
 function quickFields(it, st = {}) {
   const t = today();
   const max = it.capacity || 10;
   return `<div class="qf-row">${RANGE
-    ? `<label class="sf"><span>${esc(W('checkIn'))}</span><input type="date" name="in" min="${t}" value="${st.in || Q.get('in') || addDays(t, 14)}"></label><label class="sf"><span>${esc(W('checkOut'))}</span><input type="date" name="out" min="${addDays(t, 1)}" value="${st.out || Q.get('out') || addDays(t, 14 + Math.max(it.minUnits || 1, B().defaultUnits || 4))}"></label>`
+    ? `<input type="hidden" name="in" value="${esc(st.in || Q.get('in') || '')}"><input type="hidden" name="out" value="${esc(st.out || Q.get('out') || '')}"><div class="cal qcal" data-qcal></div>`
     : `<label class="sf"><span>${esc(W('date'))}</span><input type="date" name="date" min="${t}" value="${st.date || Q.get('date') || addDays(t, 7)}"></label>`}</div>
     <label class="sf"><span>${esc(W('people'))}</span><select name="n">${peopleOptions(max, Math.min(+(st.n || Q.get('n') || 2), max))}</select></label>`;
 }
@@ -1145,13 +1301,16 @@ function wireListing() {
     box.innerHTML = ready ? (e.error ? `<p class="qe-err">${esc(e.error)}</p>` : `${e.lines.map((l) => `<p><span>${esc(l.label)}</span><span>${esc(money(l.amount))}</span></p>`).join('')}<p class="qe-total"><span>${esc(ui('estTotal'))}</span><b>${esc(money(e.total))}</b></p>`) : `<p class="qe-hint">${esc(RANGE ? ui('pickDates') : ui('pickDate'))}</p>`;
     $('[data-quick-go]', card).href = bookHref(it.id, `&n=${st.n}${st.in ? '&in=' + st.in : ''}${st.out ? '&out=' + st.out : ''}${st.date ? '&date=' + st.date : ''}`);
   };
-  const a = $('[name="in"]', card), b = $('[name="out"]', card);
-  a && a.addEventListener('change', () => { b.min = addDays(a.value, 1); if (!b.value || b.value <= a.value) b.value = addDays(a.value, Math.max(it.minUnits || 1, B().defaultUnits || 4)); });
+  const a = $('[name="in"]', card), b = $('[name="out"]', card), qc = $('[data-qcal]', card);
+  if (RANGE && qc) {
+    if (!a.value || !b.value) { const r = freeRange(it, addDays(today(), 14)); a.value = r[0]; b.value = r[1]; }
+    calendar(qc, { months: 1, in: a.value, out: b.value, booked: () => it.booked || [], minFor: () => minOf(it), price: (d) => shortMoney(rateOn(it, d).price), priceNote: ui('calPriceNote', { cur: curLabel() }), onChange: (x, y) => { a.value = x; b.value = y; upd(); } });
+  }
   card.addEventListener('input', upd); card.addEventListener('change', upd); upd();
 }
 
 /* ---------- the booking flow ---------- */
-let bookState = null;
+let bookState = null, bookCal = null;
 function bookPage() {
   const id = Q.get('id') || (LIST()[0] || {}).id;
   const it = byId(id) || LIST()[0];
@@ -1166,7 +1325,7 @@ function bookPage() {
         <legend class="sr">${esc(W('step1'))}</legend>
         <label class="fld"><span class="lbl">${esc(W('item'))}</span><select name="listing" data-label="${esc(W('item'))}">${LIST().map((x) => `<option value="${esc(x.id)}"${x.id === it.id ? ' selected' : ''}>${esc(tx(x.name))} · ${esc(ui('from').toLowerCase())} ${esc(money(fromPrice(x)))}</option>`).join('')}</select></label>
         <div class="row-2">${RANGE
-          ? `<label class="fld"><span class="lbl">${esc(W('checkIn'))}</span><input type="date" name="in" required min="${today()}" value="${esc(Q.get('in') || '')}" data-label="${esc(W('checkIn'))}"></label><label class="fld"><span class="lbl">${esc(W('checkOut'))}</span><input type="date" name="out" required min="${addDays(today(), 1)}" value="${esc(Q.get('out') || '')}" data-label="${esc(W('checkOut'))}"></label>`
+          ? `<input type="hidden" name="in" value="${esc(Q.get('in') || '')}"><input type="hidden" name="out" value="${esc(Q.get('out') || '')}"><div class="fld bk-calf"><span class="lbl">${esc(ui('dates'))}</span><div class="cal bk-cal" data-bcal></div></div>`
           : `<label class="fld"><span class="lbl">${esc(W('date'))}</span><input type="date" name="date" required min="${today()}" value="${esc(Q.get('date') || '')}" data-label="${esc(W('date'))}"></label>${has(B().times) ? `<label class="fld"><span class="lbl">${esc(ui('time'))}</span><select name="time" data-label="${esc(ui('time'))}">${B().times.map((x) => `<option>${esc(tx(x))}</option>`).join('')}</select></label>` : ''}`}</div>
         <div class="row-2">
           <div class="fld"><span class="lbl">${esc(TYPE === 'tour' ? W('adults') : W('people'))}</span><div class="step"><button type="button" data-step="-1" aria-label="${esc(ui('less'))}">${icon('minus')}</button><input type="number" name="n" min="1" max="${it.capacity || 20}" value="${Math.min(+(Q.get('n') || 2), it.capacity || 20)}" inputmode="numeric" data-label="${esc(TYPE === 'tour' ? W('adults') : W('people'))}"><button type="button" data-step="1" aria-label="${esc(ui('more'))}">${icon('plus')}</button></div></div>
@@ -1208,6 +1367,7 @@ function restoreBook(st) {
   for (const k of ['in', 'out', 'date', 'n', 'kids', 'time']) if (f.elements[k] && st[k]) f.elements[k].value = st[k];
   if (st.id) f.elements.listing.value = st.id;
   $$('[name="extras"]', f).forEach((x) => { x.checked = (st.extras || []).includes(x.value); });
+  if (bookCal && RANGE) bookCal.set(st.in, st.out);
   f.dispatchEvent(new Event('change'));
 }
 function bookSummaryText(st, e, it) {
@@ -1215,15 +1375,22 @@ function bookSummaryText(st, e, it) {
   const lines = [ui('waIntro', { name: C.name }), '', `${W('item')}: ${tx(it.name)}`, `${RANGE ? ui('dates') : W('date')}: ${d}`, `${W('people')}: ${st.n}${+st.kids ? ` + ${st.kids} ${W('children').toLowerCase()}` : ''}`];
   const ex = (st.extras || []).map((id) => tx(((C.extras || []).find((x) => x.id === id) || {}).label)).filter(Boolean);
   if (ex.length) lines.push(`${ui('stepExtras')}: ${ex.join(', ')}`);
-  lines.push(`${ui('estTotal')}: ${fmtIn(e.total, 'MUR')}${cur !== 'MUR' ? ` (≈ ${money(e.total)})` : ''}`);
+  lines.push(`${ui('estTotal')}: ${fmtIn(e.total, BASE())}${cur !== BASE() ? ` (≈ ${money(e.total)})` : ''}`);
   const f = $('[data-book]');
   for (const n of ['name', 'email', 'phone', 'country', 'message']) { const el = f.elements[n]; if (el && el.value) lines.push(`${el.dataset.label}: ${el.value}`); }
   return lines.join('\n');
 }
+const bookRecord = (st, e, it, f) => ({ type: 'booking', item: tx(it.name), itemId: it.id, in: st.in, out: st.out, date: st.date, time: st.time, guests: st.n, kids: st.kids, total: Math.round(e.total), currency: BASE(), extras: (st.extras || []).join(', '), ...formFields(f) });
 function wireBook() {
   const f = $('[data-book]');
   if (!f) return;
   bookState = () => readBook(f);
+  const bc = $('[data-bcal]', f);
+  bookCal = null;
+  if (RANGE && bc) {
+    const item = () => byId(f.elements.listing.value) || LIST()[0];
+    bookCal = calendar(bc, { months: innerWidth < 760 ? 1 : 2, in: f.elements.in.value, out: f.elements.out.value, booked: () => item().booked || [], minFor: () => minOf(item()), price: (d) => shortMoney(rateOn(item(), d).price), priceNote: ui('calPriceNote', { cur: curLabel() }), onChange: (x, y) => { f.elements.in.value = x; f.elements.out.value = y; draw(); } });
+  }
   const pages = $$('[data-bpage]', f), steps = $$('.bk-steps li', f), sum = $('[data-sum]');
   const back = $('[data-bback]', f), next = $('[data-bnext]', f), send = $('[data-bsend]', f), wa = $('[data-bwa]', f);
   let at = 0;
@@ -1266,7 +1433,7 @@ function wireBook() {
     return true;
   };
   f.addEventListener('input', draw); f.addEventListener('change', (e) => {
-    if (e.target.name === 'in' && f.elements.out && (!f.elements.out.value || f.elements.out.value <= e.target.value)) f.elements.out.value = addDays(e.target.value, Math.max((byId(f.elements.listing.value) || {}).minUnits || 1, B().defaultUnits || 4));
+    if (e.target.name === 'listing' && bookCal) { bookCal.redraw(); const g = bookCal.get(); f.elements.in.value = g.in; f.elements.out.value = g.out; }
     draw();
   });
   f.addEventListener('click', (e) => {
@@ -1285,7 +1452,8 @@ function wireBook() {
     done.hidden = false;
     done.innerHTML = `<div class="wrap narrow done-in">${icon('check', 'done-tick')}<p class="eyebrow">${esc(ui('ref', { ref }))}</p><h1 class="h1">${esc(ui('doneTitle'))}</h1><p class="lead">${esc(via === 'wa' ? ui('doneWa') : ui('doneSent'))}</p>
       <div class="done-card"><h2 class="h3">${esc(tx(it.name))}</h2><p>${esc(RANGE ? `${nice(st.in)} → ${nice(st.out)}` : nice(st.date))} · ${esc(st.n)} ${esc(W('people').toLowerCase())}</p><p class="sum-total"><span>${esc(ui('estTotal'))}</span><b>${esc(money(e.total))}</b></p></div>
-      <ol class="next-steps"><li>${esc(ui('next1'))}</li><li>${esc(ui('next2', { pct: B().depositPct || 30 }))}</li><li>${esc(ui('next3'))}</li></ol>
+      ${(C.payments || {}).link && e.total ? (() => { const amt = Math.round(B().depositPct ? e.total * B().depositPct / 100 : e.total); return `<div class="pay-box"><a class="btn btn-accent btn-lg" href="${esc(payHref(amt, BASE(), ref))}" target="_blank" rel="noopener">${icon('lock')}${esc(ui('payNow', { amount: fmtIn(amt, BASE()) }))}</a>${has((C.payments || {}).note) ? `<p>${esc(tx(C.payments.note))}</p>` : ''}</div>`; })() : ''}
+      <ol class="next-steps"><li>${esc(ui('next1'))}</li><li>${esc(ui('next2', { pct: B().depositPct }))}</li><li>${esc(ui('next3'))}</li></ol>
       <p class="btns"><a class="btn btn-primary btn-lg" href="./">${esc(ui('backHome'))}</a>${waHref() ? `<a class="btn btn-line btn-lg" href="${waHref(ui('waFollow', { ref }))}" target="_blank" rel="noopener">${icon('wa')}WhatsApp</a>` : ''}</p></div>`;
     scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
   };
@@ -1293,22 +1461,25 @@ function wireBook() {
     e.preventDefault();
     if (!valid()) return;
     const st = readBook(f), it = byId(st.id), text = bookSummaryText(st, estimate(it, st), it);
-    const ok = await sendForm(f, { subject: ui('bookSubject', { name: C.name }), summary: text });
+    const ok = await sendForm(f, { subject: ui('bookSubject', { name: C.name }), summary: text, record: bookRecord(st, estimate(it, st), it, f) });
     if (ok && (demoOn() || (C.form || {}).endpoint)) finish('form');
   });
   wa && wa.addEventListener('click', () => {
     if (!valid()) return;
     const st = readBook(f), it = byId(st.id), text = bookSummaryText(st, estimate(it, st), it);
-    if (demoOn()) demoShow('wa', text); else window.open(waHref(text), '_blank', 'noopener');
+    if (demoOn()) demoShow('wa', text); else { inboxSend({ ...bookRecord(st, estimate(it, st), it, f), via: 'whatsapp' }); window.open(waHref(text), '_blank', 'noopener'); }
     finish('wa');
   });
   // start one step on if dates arrived from the search bar or the listing page
-  if (RANGE && !f.elements.in.value) { f.elements.in.value = addDays(today(), 14); f.elements.out.value = addDays(today(), 14 + (B().defaultUnits || 4)); }
+  if (RANGE && bookCal) {
+    if (!f.elements.in.value || !f.elements.out.value) { const r = freeRange(byId(f.elements.listing.value) || LIST()[0], addDays(today(), 14)); bookCal.set(r[0], r[1]); } else bookCal.redraw();
+    const g = bookCal.get(); f.elements.in.value = g.in; f.elements.out.value = g.out;
+  }
   if (!RANGE && !f.elements.date.value) f.elements.date.value = addDays(today(), 7);
   draw();
   document.body.insertAdjacentHTML('beforeend', '');
   const bar = $('.bk-mbar');
-  bar || $('#app').insertAdjacentHTML('beforeend', `<div class="bk-mbar"><p><span>${esc(ui('estTotal'))}</span><b data-bk-total></b></p><button type="button" class="btn btn-accent" data-to-sum>${esc(ui('details'))}</button></div>`);
+  bar || $('#app').insertAdjacentHTML('beforeend', `<div class="bk-mbar"><p><span>${esc(ui('estTotal'))}</span><b data-bk-total></b></p><div class="bar-go">${waHref() ? `<a class="bar-wa" href="${waHref(tx(K().whatsappMessage))}" target="_blank" rel="noopener" aria-label="${esc(ui('whatsappUs'))}">${icon('wa')}</a>` : ''}<button type="button" class="btn btn-accent" data-to-sum>${esc(ui('details'))}</button></div></div>`);
   $('[data-to-sum]')?.addEventListener('click', () => sum.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }));
   draw();
 }

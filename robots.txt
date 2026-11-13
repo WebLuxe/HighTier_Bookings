@@ -1,0 +1,6 @@
+# Replace the address below with the client's (the same as seo.siteUrl in config.js).
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://www.your-domain.mu/sitemap.xml
