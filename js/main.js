@@ -625,7 +625,8 @@ let snapRO = null;
 const docTop = (el) => { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; };
 function snapPages() {
   const root = document.documentElement;
-  const on = document.body.dataset.page === 'home' && !reduced && T.snap !== false && (C.effects || {}).snap !== false;
+  const page = document.body.dataset.page || 'home';
+  const on = page !== '404' && !reduced && T.snap !== false && (C.effects || {}).snap !== false;
   root.classList.toggle('snap', on);
   if (snapRO) { snapRO.disconnect(); snapRO = null; }
   if (!on) return;
@@ -637,12 +638,12 @@ function snapPages() {
     $$('main > *').forEach((e) => { e.style.removeProperty('--strip'); e.classList.remove('snap-strip', 'snap-hide'); });
     const kids = $$('main > *').filter((el) => el.offsetHeight > 0);
     const hero = kids[0];
-    if (hero && hero.classList.contains('hero')) {
+    if (hero) {
       const top = Math.max(0, Math.round(docTop(hero)));
       hero.style.setProperty('--hero-top', top + 'px'); hero.style.scrollMarginTop = top + 'px';
     }
     for (const el of kids) {
-      if (el.offsetHeight >= port * 0.45 || el === hero) continue;
+      if (page !== 'home' || el.offsetHeight >= port * 0.45 || el === hero) continue;   // inner pages: every section stays, short or long
       el.classList.add('snap-strip');
       const prev = el.previousElementSibling;
       if (!prev) continue;
@@ -1177,7 +1178,7 @@ let fxAsked = false;
 function loadFx(page) {
   if (fxAsked || !fxWanted()) return;
   fxAsked = true;
-  const go = () => import(new URL('js/fx.js', document.baseURI).href)
+  const go = () => import(new URL('js/fx.js?v=e25eeb8b4a', document.baseURI).href)
     .then((m) => m.start({ C, page, ui, money, tx }))
     .then((api) => { window.__fx = api; })
     .catch((e) => { document.documentElement.classList.remove('fx'); if (matchMedia('(max-width: 759px)').matches) pager($('.day-track')); console.info('WebLuxe effects off:', e && e.message); });
