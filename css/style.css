@@ -947,6 +947,18 @@ html.fx .day-time { font-size: clamp(2.2rem, 4.5vh, 3.4rem); }
 @media (min-width: 960px) { html.fx .day-card { flex-basis: min(30vw, 420px); } html.fx .day-card:nth-child(even) { margin-top: 8vh; } }
 @media (max-height: 700px) { html.fx .day-card figure { height: 38vh; } html.fx .day-head .lead { display: none; } }
 @media (max-width: 759px) { html.fx .day-card figure { height: min(40vh, 360px); } html.fx .day-pin { padding-top: calc(var(--hd-h) + var(--s1)); gap: var(--s2); } html.fx .day-head .lead { display: none; } }
+/* phones and tablets: the moments of the day are stacked, one on screen at a time; a swipe lifts the next one in (nothing moves sideways) */
+html.fx .day-stack .day-track { display: grid; width: auto; gap: 0; padding-inline: var(--gut); will-change: auto; }
+html.fx .day-stack .day-card { grid-area: 1 / 1; width: 100%; max-width: 560px; margin-inline: auto; will-change: transform, opacity; }
+html.fx .day-stack .day-card + .day-card { opacity: 0; visibility: hidden; }
+html.fx .day-stack .day-card figure { height: clamp(150px, calc(100svh - 420px), 460px); }
+/* the pinned scene is laid out in the part of the screen that is always visible (the address bar may be showing); its colour still fills the whole screen */
+html.fx .day-stack { min-height: 100vh; min-height: 100lvh; }
+html.fx .day-stack .day-pin { min-height: 100vh; min-height: 100svh; }
+html.fx .day-stack .day-card img { transform-origin: 50% 60%; }
+.day-steps { display: flex; gap: 6px; padding-inline: var(--gut); max-width: calc(560px + 2 * var(--gut)); width: 100%; margin-inline: auto; box-sizing: border-box; }
+.day-steps i { flex: 1; height: 2px; border-radius: 2px; background: currentColor; opacity: .22; transition: opacity .5s ease; }
+.day-steps i.on { opacity: .9; }
 html.in-day .book-bar { transform: translateY(110%) !important; transition: transform .4s var(--ease-out); }
 html.in-day .fab { --fab-lift: 0px; }
 html.fx .polas [data-reveal], html.fx .row[data-reveal], html.fx .rc-track [data-reveal], html.fx .intro-pics [data-reveal] { opacity: 1; transform: none; transition: none; }
@@ -1187,7 +1199,7 @@ html.fx .row-pics.opened:not(.done) { clip-path: inset(0 0 0 0 round 4px); }
 @media (max-width: 759px) {
   .lc-track, .rc-track { overflow-x: hidden !important; touch-action: pan-y; }
   .lc-nav { display: grid !important; opacity: .95; width: 38px; height: 38px; }
-  .rc-track > li { flex: 0 0 calc(100vw - 2 * var(--gut)); }
+  .rc-track > li { flex: 0 0 100%; }
   .rc-track { gap: calc(2 * var(--gut)); }
   .lp-track { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px; overflow: hidden; height: min(52svh, 420px); }
   .lp-track li:first-child { grid-row: span 2; }

@@ -81,7 +81,7 @@ Template by [WebLuxe](https://webluxe.github.io/WebLuxe/), Mauritius. Sample pho
 Loads after the page is usable, only on devices that can carry it, and checks the frame rate the whole time (it turns the 3D hero off first, then the smooth scroll, if frames drop):
 
 - **3D hero (three.js):** the hero video or photos drawn in WebGL: the water drifts, ripples follow the finger or mouse, photos melt into each other. The video is only re-sent to the graphics card when it shows a new frame, and drawing stops when the hero is off screen.
-- **Scroll scenes (GSAP ScrollTrigger):** headlines rise word by word, room photos settle, "A day at" pins and slides sideways while the colour changes, the receipt counts the saving, postcards and polaroids arrive.
+- **Scroll scenes (GSAP ScrollTrigger):** headlines rise word by word, room photos settle, "A day at" pins while the colour changes (phones and tablets: each moment lifts in over the last, nothing moves sideways; computers: the row slides sideways), the receipt counts the saving, postcards and polaroids arrive.
 - **Computers only:** smooth scrolling (Lenis), a "View" cursor over photos, buttons that lean toward the cursor.
 - Each part can be turned off under `effects` in `config.js`; `enabled: false` turns the whole layer off.
 

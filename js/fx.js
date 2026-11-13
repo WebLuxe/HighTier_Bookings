@@ -40,6 +40,14 @@ export async function start(ctx) {
   if (fxc.cursor !== false && desktop()) cursor();
   watchdog();
   refresh(X.page);
+  // The page above a pinned scene can still change height after this (a late font, an answer opening, the fit for a
+  // short phone): measure again when it does, or the scene and its stops would sit a little off.
+  const app = document.getElementById('app');
+  if (app && 'ResizeObserver' in window) {
+    let h0 = app.offsetHeight, t = 0;
+    ScrollTrigger.addEventListener('refresh', () => { h0 = app.offsetHeight; });
+    new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { if (Math.abs(app.offsetHeight - h0) > 2) ScrollTrigger.refresh(); }, 350); }).observe(app);
+  }
   return { refresh };
 }
 
@@ -267,13 +275,33 @@ function scenes() {
     let tones = $('.day-tones', day);
     if (!tones) { tones = document.createElement('div'); tones.className = 'day-tones'; tones.setAttribute('aria-hidden', 'true'); tones.innerHTML = cards.map((c, i) => `<span style="background:${c.dataset.bg};opacity:${i ? 0 : 1}"></span>`).join(''); day.prepend(tones); }
     const layers = $$('span', tones);
-    const dist = () => Math.max(0, track.scrollWidth - innerWidth + parseFloat(getComputedStyle(track).paddingLeft || 0));
+    // phones and tablets: nothing moves sideways. The moments sit on top of each other and each swipe lifts the next one in.
+    // (each moment is most of a screen of scrolling apart, so a long drag of the thumb cannot pass over one)
+    const stack = innerWidth < 960 || matchMedia('(pointer: coarse)').matches;
+    day.classList.toggle('day-stack', stack);
+    let steps = $('.day-steps', day);
+    if (stack && !steps) { steps = document.createElement('div'); steps.className = 'day-steps'; steps.setAttribute('aria-hidden', 'true'); steps.innerHTML = cards.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join(''); track.after(steps); }
+    if (!stack && steps) { steps.remove(); steps = null; }
+    const dist = () => (stack ? (cards.length - 1) * Math.round(innerHeight * 0.8) : Math.max(0, track.scrollWidth - innerWidth + parseFloat(getComputedStyle(track).paddingLeft || 0)));
     let shown = 0;
-    const tl = gsap.timeline({ scrollTrigger: { trigger: day, start: 'top top', end: () => '+=' + dist(), pin: true, scrub: 0.5, invalidateOnRefresh: true,
-      onToggle: (s) => root.classList.toggle('in-day', s.isActive) } });
-    tl.to(track, { x: () => -dist(), ease: 'none', duration: cards.length - 1 }, 0);
+    const tl = gsap.timeline({ scrollTrigger: { trigger: day, start: 'top top', end: () => '+=' + dist(), pin: true, scrub: 0.5, invalidateOnRefresh: true } });
+    // the booking bar steps aside for the whole scene, its first and last moments included (they rest exactly on the scene's edges)
+    const frame = day.parentElement && day.parentElement.classList.contains('pin-spacer') ? day.parentElement : day;
+    ScrollTrigger.create({ trigger: frame, start: 'top 35%', end: 'bottom 65%', onToggle: (s) => root.classList.toggle('in-day', s.isActive) });
+    if (stack) {
+      gsap.set(track, { x: 0 });
+      gsap.set(cards.slice(1), { autoAlpha: 0 });
+      cards.forEach((c, i) => {
+        if (!i) return;
+        const im = $('img', c);
+        tl.to(cards[i - 1], { autoAlpha: 0, yPercent: -7, duration: 0.4, ease: 'power1.in' }, i - 0.8);
+        tl.fromTo(c, { autoAlpha: 0, yPercent: 9 }, { autoAlpha: 1, yPercent: 0, duration: 0.5, ease: 'power2.out', immediateRender: false }, i - 0.5);
+        if (im) tl.fromTo(im, { scale: 1.16 }, { scale: 1, duration: 0.6, ease: 'power1.out', immediateRender: false }, i - 0.6);
+      });
+      tl.set({}, {}, cards.length - 1);
+    } else tl.to(track, { x: () => -dist(), ease: 'none', duration: cards.length - 1 }, 0);
     cards.forEach((c, i) => { if (i) tl.to(layers[i], { opacity: 1, duration: 0.7, ease: 'none' }, i - 0.85); });
-    tl.eventCallback('onUpdate', () => { const k = Math.min(cards.length - 1, Math.round(tl.time())); if (k !== shown) { shown = k; day.style.color = cards[k].dataset.fg; } });
+    tl.eventCallback('onUpdate', () => { const k = Math.min(cards.length - 1, Math.round(tl.time())); if (k !== shown) { shown = k; day.style.color = cards[k].dataset.fg; if (steps) [...steps.children].forEach((d, j) => d.classList.toggle('on', j === k)); } });
     // one swipe, one moment of the day: a snap point where each card is fully in view
     if (root.classList.contains('snap')) {
       const st = tl.scrollTrigger;
