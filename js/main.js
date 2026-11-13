@@ -625,7 +625,7 @@ let snapRO = null;
 const docTop = (el) => { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; };
 function snapPages() {
   const root = document.documentElement;
-  const on = document.body.dataset.page === 'home' && !reduced && (C.effects || {}).snap !== false;
+  const on = document.body.dataset.page === 'home' && !reduced && T.snap !== false && (C.effects || {}).snap !== false;
   root.classList.toggle('snap', on);
   if (snapRO) { snapRO.disconnect(); snapRO = null; }
   if (!on) return;
@@ -691,15 +691,23 @@ function snapWheel() {
   const active = () => root.classList.contains('snap') && innerWidth >= 760 && !matchMedia('(pointer: coarse)').matches && !root.classList.contains('menu-open') && !$('dialog[open]');
   // is the page inside a section taller than the screen, with more of it to read in this direction?
   const reading = (dir) => { const y = scrollY, vh = innerHeight, cur = points().filter((p) => p.y <= y + 2).pop(); return !!(cur && cur.h > vh + 2 && (dir > 0 ? y + vh < cur.y + cur.h - 2 : y > cur.y + 2)); };
+  // the glide: about a second, easing in and out (a little longer for a longer jump)
+  const glide = (to, done) => {
+    const from = scrollY, d = to - from;
+    if (reduced || Math.abs(d) < 2) { scrollTo({ top: to, behavior: 'instant' }); if (done) done(); return; }
+    const dur = Math.min(1500, 1000 + Math.abs(d) * 0.12);
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const t0 = performance.now();
+    const step = (now) => { const k = Math.min(1, (now - t0) / dur); scrollTo({ top: Math.round(from + d * ease(k)), behavior: 'instant' }); if (k < 1) requestAnimationFrame(step); else if (done) done(); };
+    requestAnimationFrame(step);
+  };
+  snapPages.glide = (to) => { if (busy) return; busy = true; glide(to, () => { busy = false; settle = true; }); };
   const go = (dir, to) => {
     const y = scrollY, P = points();
     const next = to != null ? to : dir > 0 ? P.find((p) => p.y > y + 2) : P.filter((p) => p.y < y - 2).pop();
     if (!next) return;
     busy = true;
-    scrollTo({ top: next.y, behavior: reduced ? 'auto' : 'smooth' });
-    let k = 0;
-    const check = () => { if (Math.abs(scrollY - next.y) < 2 || ++k > 100) { busy = false; settle = true; } else requestAnimationFrame(check); };
-    requestAnimationFrame(check);
+    glide(next.y, () => { busy = false; settle = true; });
   };
   // after the layout moves (fonts, photos, a re-measure), a page resting a little off a section settles back onto it
   snapPages.realign = () => { if (!active() || busy) return; const y = scrollY; let best = null; for (const p of points()) if (!best || Math.abs(p.y - y) < Math.abs(best.y - y)) best = p; if (best && Math.abs(best.y - y) > 1 && Math.abs(best.y - y) < 80 && !reading(1)) scrollTo({ top: best.y, behavior: 'instant' }); };
@@ -1065,7 +1073,7 @@ function sectionDots() {
   nav = document.createElement('nav'); nav.className = 'sdots'; nav.setAttribute('aria-label', ui('sections'));
   nav.innerHTML = secs.map((s, i) => `<button type="button" data-sdot="${i}" aria-label="${esc(label(s) || String(i + 1))}"><span>${esc(label(s))}</span></button>`).join('');
   document.body.append(nav);
-  nav.addEventListener('click', (e) => { const b = e.target.closest('[data-sdot]'); if (!b) return; const s = secs[+b.dataset.sdot]; const top = s.getBoundingClientRect().top + scrollY - (s.classList.contains('hero') ? 0 : 60); window.__lenis ? window.__lenis.scrollTo(top, { duration: 1.2 }) : scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' }); });
+  nav.addEventListener('click', (e) => { const b = e.target.closest('[data-sdot]'); if (!b) return; const s = secs[+b.dataset.sdot]; const top = s.getBoundingClientRect().top + scrollY - (s.classList.contains('hero') ? 0 : 61); if (window.__lenis) window.__lenis.scrollTo(top, { duration: 1.2 }); else if (document.documentElement.classList.contains('snap') && snapPages.glide && !matchMedia('(pointer: coarse)').matches) snapPages.glide(Math.max(0, top)); else scrollTo({ top, behavior: reduced ? 'auto' : 'smooth' }); });
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { const i = secs.indexOf(e.target); $$('[data-sdot]', nav).forEach((b, k) => b.toggleAttribute('aria-current', k === i)); nav.classList.toggle('on-dark', !!e.target.closest('.hero, .plx, .fcta, [data-day]')); } }), { rootMargin: '-45% 0px -50% 0px' });
   secs.forEach((s) => io.observe(s));
 }
